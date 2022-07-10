@@ -10,8 +10,6 @@ import java.util.Optional;
 public interface BookRepository extends JpaRepository <Book, Long> {
 
     @Query("SELECT b FROM Book b WHERE b.title = ?1 AND b.author = ?2 AND b.edition = ?3")
-    Optional<Book> findBooksByAllFields(final Optional<String> title ,
-                                        final Optional<String> author,
-                                        final Optional<String> edition);
+    Optional<Book> findBooksByAllFields(final String title , final String author, final String edition);
 
 }

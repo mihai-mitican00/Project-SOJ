@@ -1,10 +1,8 @@
 package com.endava.tmd.bookclubproject.waitinglist;
 
-import com.endava.tmd.bookclubproject.book.Book;
 import com.endava.tmd.bookclubproject.utilities.BooleanUtilities;
 import com.endava.tmd.bookclubproject.utilities.HttpResponseUtilities;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -24,10 +22,9 @@ public class WaitingListController {
     @RequestMapping(method = RequestMethod.GET)
     public Object getAllOnWaitingList() {
         List<WaitingList> listOfEntries = waitingListService.getAllOnWaitingList();
-        if (listOfEntries.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        if (BooleanUtilities.emptyList(listOfEntries)) {
+            return HttpResponseUtilities.noContentFound();
         }
-
         return listOfEntries;
     }
 
@@ -39,7 +36,8 @@ public class WaitingListController {
             return HttpResponseUtilities.wrongParameters();
         }
 
-        return waitingListService.addUserOnList(bookId.orElse(null), userId.orElse(null));
+        return waitingListService.addUserOnList(bookId.orElse(0L), userId.orElse(0L));
     }
+
 
 }

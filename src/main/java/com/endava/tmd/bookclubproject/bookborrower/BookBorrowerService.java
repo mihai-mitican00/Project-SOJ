@@ -45,17 +45,15 @@ public class BookBorrowerService {
         return bookBorrowerRepository.findBooksThatUserRented(borrowerId);
     }
 
-
     public ResponseEntity<String> borrowBookFromOwner(final Long bookId, final Long borrowerId, final Long ownerId, final Long weeks) {
 
         if (!isDataValid(bookId, borrowerId, ownerId) || !isBookOwnedBy(bookId, ownerId)) {
             return HttpResponseUtilities.noContentFound();
         }
 
-        if (
-                isSameBookAlreadyBorrowed(bookId, ownerId)
-                        || hasBorrowerAlreadyRentTheBook(bookId, borrowerId)
-                        || isBookOwnedBy(bookId, borrowerId)
+        if (isBookOfOwnerAlreadyBorrowed(bookId, ownerId)
+                || hasBorrowerAlreadyRentTheBook(bookId, borrowerId)
+                || isBookOwnedBy(bookId, borrowerId)
         ) {
             return HttpResponseUtilities.dataConflict("Borrow cannot be done.");
         }
@@ -65,11 +63,16 @@ public class BookBorrowerService {
         BookBorrower bookBorrower = new BookBorrower(book, borrower, ownerId, weeks);
 
         bookBorrowerRepository.save(bookBorrower);
-        return HttpResponseUtilities.insertDone("Book was borrowed!");
+        return HttpResponseUtilities.insertDone
+                ("Book with id " + book.getId()
+                        + " was borrowed by user with id " + borrower.getId()
+                        + " for " + weeks + " weeks");
     }
 
-    public ResponseEntity<String> extendRentingPeriod(final Long bookId, final Long ownerId) {
-        Optional<BookBorrower> bookBorrowerOptional = getEntryByBookAndOwner(bookId, ownerId);
+    public ResponseEntity<String> extendRentingPeriod(final Long bookId, final Long borrowerId) {
+        Optional<BookBorrower> bookBorrowerOptional = bookBorrowerRepository
+                .findEntryByBookAndBorrower(bookId, borrowerId);
+
         if (bookBorrowerOptional.isEmpty()) {
             return HttpResponseUtilities.noContentFound();
         }
@@ -88,53 +91,24 @@ public class BookBorrowerService {
         return HttpResponseUtilities.operationWasDone("Renting period was prolonged with one week");
     }
 
-    public Optional<BookBorrower> getEntryByBookAndOwner(final Long bookId, final Long ownerId) {
-        return bookBorrowerRepository.findEntryByBookAndOwner(bookId, ownerId);
-    }
-
-    public boolean isDataValid(final Long bookId, final Long borrowerId, final Long ownerId) {
+    private boolean isDataValid(final Long bookId, final Long borrowerId, final Long ownerId) {
         Optional<Book> bookOptional = bookRepository.findById(bookId);
         Optional<User> borrowerOptional = userRepository.findById(borrowerId);
         Optional<User> ownerOptional = userRepository.findById(ownerId);
         return (bookOptional.isPresent() && borrowerOptional.isPresent() && ownerOptional.isPresent());
     }
 
-    public boolean isBookOwnedBy(final Long bookId, final Long ownerId) {
+    private boolean isBookOwnedBy(final Long bookId, final Long ownerId) {
         Optional<BookOwner> bookOwnerOptional = bookOwnerRepository.findById(new BookOwnerKey(bookId, ownerId));
         return bookOwnerOptional.isPresent();
     }
 
-    public boolean isSameBookAlreadyBorrowed(final Long bookId, final Long ownerId) {
-        Optional<BookBorrower> bookBorrowerAlreadyPresent = getEntryByBookAndOwner(bookId, ownerId);
-        return bookBorrowerAlreadyPresent.isPresent();
+    private boolean isBookOfOwnerAlreadyBorrowed(final Long bookId, final Long ownerId) {
+        Optional<BookBorrower> bookByOwner = bookBorrowerRepository.findEntryByBookAndOwner(bookId, ownerId);
+        return bookByOwner.isPresent();
     }
-
-    public boolean hasBorrowerAlreadyRentTheBook(final Long bookId, final Long borrowerId) {
-        BookBorrowerId bookBorrowerId = new BookBorrowerId(bookId, borrowerId);
-        Optional<BookBorrower> borrowerOptional = bookBorrowerRepository.findById(bookBorrowerId);
-
+    private boolean hasBorrowerAlreadyRentTheBook(final Long bookId, final Long borrowerId) {
+        Optional<BookBorrower> borrowerOptional = bookBorrowerRepository.findEntryByBookAndBorrower(bookId, borrowerId);
         return borrowerOptional.isPresent();
-    }
-
-
-    public void deleteAllBorrowsOfAnUser(final Long userId) {
-        List<BookBorrower> entries = bookBorrowerRepository.findAll();
-        for (BookBorrower entry : entries) {
-            if (entry.getBookBorrowerId().getBorrowerId().equals(userId) ||
-                    entry.getOwnerId().equals(userId)) {
-                bookBorrowerRepository.delete(entry);
-            }
-
-        }
-    }
-
-    public void deleteAllBorrowsOfAnBook(final Long bookId) {
-        List<BookBorrower> entries = bookBorrowerRepository.findAll();
-        for (BookBorrower entry : entries) {
-            if (entry.getBook().getId().equals(bookId)) {
-                bookBorrowerRepository.delete(entry);
-            }
-
-        }
     }
 }

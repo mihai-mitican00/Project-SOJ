@@ -1,5 +1,6 @@
 package com.endava.tmd.bookclubproject.book;
 
+import com.endava.tmd.bookclubproject.bookowner.BookOwner;
 import com.endava.tmd.bookclubproject.user.User;
 import com.endava.tmd.bookclubproject.utilities.BooleanUtilities;
 import com.endava.tmd.bookclubproject.utilities.HttpResponseUtilities;
@@ -7,8 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @RestController
 @RequestMapping("books")
@@ -22,25 +22,19 @@ public class BookController {
         return bookService.getBooks();
     }
 
-    @RequestMapping(method = RequestMethod.GET, params = "bookId")
-    public Object getBookById(@RequestParam final Long bookId) {
-        Optional<Book> optionalBook = bookService.getBookById(bookId);
-
-        if (BooleanUtilities.anyEmptyParameters(optionalBook)) {
-            return HttpResponseUtilities.noContentFound();
-        }
-        return optionalBook;
-    }
-
-
     @RequestMapping(method = RequestMethod.GET, value = "/AllAvailableBooks")
-    public Object getAllAvailableBooks() {
+    public ResponseEntity<String> getAllAvailableBooks() {
         List<Book> availableBooks = bookService.getAllAvailableBooks();
-
         if (BooleanUtilities.emptyList(availableBooks)) {
             return HttpResponseUtilities.noContentFound();
         }
-        return availableBooks;
+        StringBuilder message = new StringBuilder();
+        availableBooks.forEach(book ->
+                message
+                .append(book.toString())
+                .append("\n-----------------------------\n")
+        );
+        return HttpResponseUtilities.operationWasDone(message.toString());
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/TitleOrAuthor")
@@ -62,12 +56,5 @@ public class BookController {
         }
         return bookOwners;
     }
-
-
-    @RequestMapping(method = RequestMethod.DELETE, params = "bookId")
-    public void deleteBook(@RequestParam final Long bookId) {
-        bookService.deleteBook(bookId);
-    }
-
 
 }

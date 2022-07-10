@@ -33,16 +33,9 @@ public class BookService {
         return bookRepository.findAll();
     }
 
-
-    public Optional<Book> getBookByAllFields(final Optional<String> title,
-                                             final Optional<String> author,
-                                             final Optional<String> edition) {
-        return bookRepository.findBooksByAllFields(title, author, edition);
-    }
-
     public ResponseEntity<String> allBooksByTitleOrAuthor(final Optional<String> title, final Optional<String> author) {
 
-        if (BooleanUtilities.allEmptyParameters(title, author)) {
+        if (title.isEmpty() || author.isEmpty()) {
             return HttpResponseUtilities.wrongParameters();
         }
 
@@ -50,9 +43,10 @@ public class BookService {
                 .findAll()
                 .stream()
                 .map(BookOwner::getBook)
-                .filter(book -> (book.getTitle().equals(title.orElse(null)) ||
-                        book.getAuthor().equals(author.orElse(null))))
+                .filter(book -> (book.getTitle().equals(title.get()) ||
+                        book.getAuthor().equals(author.get())))
                 .toList();
+
 
         if (BooleanUtilities.emptyList(booksByTitleOrAuthor)) {
             return HttpResponseUtilities.noContentFound();
@@ -67,31 +61,16 @@ public class BookService {
         for (Book book : booksByTitleOrAuthor) {
             message.append(book.toString());
             if (borrowedBooks.contains(book)) {
-                message.append("\nAvailable From: ").append(returnDates.get(i)).append("\n------------\n");
+                message.append("\nAvailable From: ").append(returnDates.get(i)).append("\n-----------------------\n");
                 borrowedBooks.remove(book);
             } else {
-                message.append("\nAvailable").append("\n------------\n");
+                message.append("\nAvailable").append("\n-----------------------\n");
             }
             i++;
         }
 
         return HttpResponseUtilities.operationWasDone(message.toString());
     }
-
-    public void deleteBook(final Long bookId) {
-        Optional<Book> bookOptional = bookRepository.findById(bookId);
-
-        if (!bookOptional.isPresent()) {
-            throw new IllegalStateException("book with id " + bookId + " is not in books");
-        }
-
-        bookRepository.deleteById(bookId);
-    }
-
-    public Optional<Book> getBookById(final Long bookId) {
-        return bookRepository.findById(bookId);
-    }
-
 
     public List<Book> getAllAvailableBooks() {
         List<Book> ownedBooks =
@@ -100,6 +79,7 @@ public class BookService {
                         .stream()
                         .map(BookOwner::getBook)
                         .toList();
+
 
         List<Book> borrowedBooks =
                 bookBorrowerRepository

@@ -3,9 +3,6 @@ package com.endava.tmd.bookclubproject.utilities;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import java.util.Arrays;
-import java.util.Optional;
-
 public interface HttpResponseUtilities {
 
     static ResponseEntity<String> wrongParameters(){

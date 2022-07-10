@@ -1,10 +1,7 @@
 package com.endava.tmd.bookclubproject.waitinglist;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldNameConstants;
 
 import javax.persistence.*;
 
@@ -16,7 +13,15 @@ import javax.persistence.*;
 @Table(name = "waiting_list")
 public class WaitingList {
 
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @SequenceGenerator(
+            name = "waiting_list_sequence",
+            sequenceName = "waiting_list_sequence",
+            allocationSize = 1
+    )
+    @GeneratedValue(
+            strategy = GenerationType.SEQUENCE,
+            generator = "waiting_list_sequence"
+    )
     @Id
     private Long id;
 
@@ -25,7 +30,6 @@ public class WaitingList {
 
     @Column(name = "user_id", nullable = false)
     private Long userId;
-
 
     public WaitingList(Long bookId, Long userId){
         this.bookId = bookId;

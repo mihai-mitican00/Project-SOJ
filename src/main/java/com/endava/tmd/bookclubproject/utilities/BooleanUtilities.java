@@ -1,10 +1,8 @@
 package com.endava.tmd.bookclubproject.utilities;
 
-import com.endava.tmd.bookclubproject.book.Book;
-import com.endava.tmd.bookclubproject.user.User;
-
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 public interface BooleanUtilities {
@@ -13,10 +11,13 @@ public interface BooleanUtilities {
     static <T> boolean anyEmptyParameters(final Optional<T>... args){
         return Arrays.stream(args).anyMatch(Optional::isEmpty);
     }
-
     @SafeVarargs
-    static <T> boolean allEmptyParameters(final Optional<T>... args){
-        return Arrays.stream(args).allMatch(Optional::isEmpty);
+    static<T> boolean anyNullParameters(final T... args){
+        return Arrays.stream(args).anyMatch(Objects::isNull);
+    }
+
+    static boolean anyEmptyString(final String... args){
+        return Arrays.stream(args).anyMatch(String::isEmpty);
     }
 
     static <T> boolean emptyList(final List<T> list){

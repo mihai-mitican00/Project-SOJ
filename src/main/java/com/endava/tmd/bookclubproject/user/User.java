@@ -3,6 +3,7 @@ package com.endava.tmd.bookclubproject.user;
 import com.endava.tmd.bookclubproject.book.Book;
 import com.endava.tmd.bookclubproject.bookborrower.BookBorrower;
 import com.endava.tmd.bookclubproject.bookowner.BookOwner;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
 
@@ -12,6 +13,7 @@ import java.util.Set;
 
 @SuppressWarnings("JpaDataSourceORMInspection")
 @Data
+@NoArgsConstructor
 @Entity
 @Table(name = "users")
 public class User {
@@ -41,31 +43,23 @@ public class User {
     @JsonIgnore
     @OneToMany(
             mappedBy = "user",
-            cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE}
+            cascade = {CascadeType.PERSIST, CascadeType.MERGE}
     )
-    public Set<BookOwner> booksOwned = new HashSet<>();
+    private Set<BookOwner> booksOwned = new HashSet<>();
 
     @JsonIgnore
     @OneToMany(
             mappedBy = "borrower",
-            cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE}
+            cascade = {CascadeType.PERSIST, CascadeType.MERGE}
     )
-    public Set<BookBorrower> booksBorrowed = new HashSet<>();
+    private Set<BookBorrower> booksBorrowed = new HashSet<>();
 
-    public User(){}
-
-    public User(String firstName, String lastName, String username, String password, String email) {
+    public User(final String firstName,final String lastName,final String username,final String password,final String email) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.username = username;
         this.password = password;
         this.email = email;
-    }
-
-    public void addBook(Book book){
-        BookOwner bookOwner = new BookOwner(book, this);
-        booksOwned.add(bookOwner);
-        book.getBookOwners().add(bookOwner);
     }
 
 }

@@ -2,9 +2,7 @@ package com.endava.tmd.bookclubproject.bookowner;
 
 import com.endava.tmd.bookclubproject.book.Book;
 import com.endava.tmd.bookclubproject.user.User;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
-import org.hibernate.annotations.Fetch;
 
 import javax.persistence.*;
 
@@ -30,8 +28,7 @@ public class BookOwner {
     @JoinColumn(name = "user_id")
     private User user;
 
-
-    public BookOwner(Book book, User user){
+    public BookOwner(final Book book, final User user) {
         this.book = book;
         this.user = user;
         this.id = new BookOwnerKey(book.getId(), user.getId());

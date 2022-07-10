@@ -1,6 +1,8 @@
 package com.endava.tmd.bookclubproject.user;
 
 import com.endava.tmd.bookclubproject.book.Book;
+import com.endava.tmd.bookclubproject.utilities.BooleanUtilities;
+import com.endava.tmd.bookclubproject.utilities.HttpResponseUtilities;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,20 +22,10 @@ public class UserController {
     public Object getUsers() {
         List<User> usersList = userService.getUsers();
 
-        if (usersList.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        if (BooleanUtilities.emptyList(usersList)) {
+            return HttpResponseUtilities.noContentFound();
         }
         return usersList;
-    }
-
-    @RequestMapping(method = RequestMethod.GET, params = "userId")
-    public Object getUserById(@RequestParam final Long userId) {
-        Optional<User> optionalUser = userService.getUserById(userId);
-
-        if (optionalUser.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        }
-        return optionalUser;
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "BooksOwned")
@@ -46,7 +38,6 @@ public class UserController {
         return booksOwned;
     }
 
-
     @RequestMapping(method = RequestMethod.POST)
     public ResponseEntity<String> registerUser(@RequestBody final Optional<User> userOptional){
         return userService.registerUser(userOptional);
@@ -56,11 +47,5 @@ public class UserController {
     public ResponseEntity<String> deleteUser(@RequestParam("userId") final Optional<Long> userId) {
        return userService.deleteUser(userId);
     }
-
-    @RequestMapping(method = RequestMethod.POST, value = "/userAddBook")
-    public void userAddBook(@RequestBody Book book) {
-
-    }
-
 
 }
