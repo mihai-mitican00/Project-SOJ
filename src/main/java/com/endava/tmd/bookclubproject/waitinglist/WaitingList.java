@@ -31,7 +31,7 @@ public class WaitingList {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    public WaitingList(Long bookId, Long userId){
+    public WaitingList(final Long bookId, final Long userId){
         this.bookId = bookId;
         this.userId = userId;
     }

@@ -34,19 +34,8 @@ public class BookOwnerService {
         return bookOwnerRepository.findAll();
     }
 
-    public List<Book> getBooksOwnedByUser(final Long userId) {
-        List<BookOwner> bookOwnersEntries = bookOwnerRepository.getEntriesByUserId(userId);
-        return bookOwnersEntries.stream()
-                .filter(bookOwner -> bookOwner.getUser().getId().equals(userId))
-                .map(BookOwner::getBook)
-                .toList();
-
-    }
-
     public ResponseEntity<String> addBookByUserId(final Long userId, final Optional<Book> bookOptional) {
-
         Optional<User> userOptional = userRepository.findById(userId);
-
         if (userOptional.isEmpty() || bookOptional.isEmpty()) {
             return HttpResponseUtilities.noContentFound();
         }
@@ -60,15 +49,17 @@ public class BookOwnerService {
         BookOwner bookOwner = new BookOwner(book, user);
 
         Optional<Book> bookAlreadyPresent = bookRepository
-                .findBooksByAllFields(
+                .findByTitleAndAuthorAndEdition(
                         book.getTitle(),
                         book.getAuthor(),
-                        book.getEdition());
+                        book.getEdition()
+                );
 
         //Check if book already exists in the virtual shelter
         if (bookAlreadyPresent.isPresent()) {
             //Verify that given user did not already added same book in the virtual shelter
-            if (getBooksOwnedByUser(userId).contains(bookAlreadyPresent.get())) {
+            List<Book> booksOwnedByUser = bookOwnerRepository.findBooksOfUser(userId);
+            if (booksOwnedByUser.contains(bookAlreadyPresent.get())) {
                 return HttpResponseUtilities.dataConflict("You already added this book to user with id " + user.getId() + "!");
             } else {
                 bookOwner.setBook(bookAlreadyPresent.get());
@@ -79,39 +70,39 @@ public class BookOwnerService {
             bookOwnerRepository.saveAndFlush(bookOwner);
         }
 
-        return HttpResponseUtilities.insertDone("Book added with success!");
+        return HttpResponseUtilities.insertSuccess("Book added with success!");
     }
 
-    public ResponseEntity<String> deleteBookFromUser(final Optional<Long> bookId, final Optional<Long> userId) {
-        if (BooleanUtilities.anyEmptyParameters(bookId, userId)) {
+    public ResponseEntity<String> deleteBookFromUser(final Optional<Long> bookId, final Optional<Long> ownerId) {
+        if (BooleanUtilities.anyEmptyParameters(bookId, ownerId)) {
             return HttpResponseUtilities.wrongParameters();
         }
 
         Optional<Book> bookOptional = bookRepository.findById(bookId.orElse(0L));
-        Optional<User> userOptional = userRepository.findById(userId.orElse(0L));
-        if (bookOptional.isEmpty() || userOptional.isEmpty()) {
+        Optional<User> ownerOptional = userRepository.findById(ownerId.orElse(0L));
+        if (bookOptional.isEmpty() || ownerOptional.isEmpty()) {
             return HttpResponseUtilities.noContentFound();
         }
         Book book = bookOptional.get();
-        User user = userOptional.get();
+        User owner = ownerOptional.get();
 
-        Optional<BookOwner> bookOwnerOptional = bookOwnerRepository.findById(new BookOwnerKey(book.getId(), user.getId()));
+        Optional<BookOwner> bookOwnerOptional = bookOwnerRepository.findById(new BookOwnerKey(book.getId(), owner.getId()));
         if (bookOwnerOptional.isEmpty()) {
             return HttpResponseUtilities.noContentFound();
         }
 
-        deleteAllBorrowsOfAnBook(book.getId());
+        bookBorrowerRepository.deleteByBookIdAndOwnerId(book.getId(), owner.getId());
 
         BookOwner bookOwner = bookOwnerOptional.get();
         bookOwnerRepository.delete(bookOwner);
 
-        List<BookOwner> leftEntries = bookOwnerRepository.getEntriesByBookId(book.getId());
+        List<BookOwner> leftEntries = bookOwnerRepository.findAllByBookId(book.getId());
         if (leftEntries.isEmpty()) {
             bookRepository.delete(book);
         }
 
-        return HttpResponseUtilities.operationWasDone("User with user id "
-                + user.getUsername() + " deleted book " + book.getTitle() + " with success!");
+        return HttpResponseUtilities.operationSuccess("Owner with user id "
+                + owner.getUsername() + " deleted book " + book.getTitle() + " with success!");
     }
 
     private boolean hasIncompleteData(Optional<Book> bookOptional) {
@@ -120,12 +111,4 @@ public class BookOwnerService {
         return BooleanUtilities.anyNullParameters(bookData) || BooleanUtilities.anyEmptyString(bookData);
     }
 
-    private void deleteAllBorrowsOfAnBook(final Long bookId) {
-        List<BookBorrower> entries = bookBorrowerRepository.findAll();
-        for (BookBorrower entry : entries) {
-            if (entry.getBook().getId().equals(bookId)) {
-                bookBorrowerRepository.delete(entry);
-            }
-        }
-    }
 }

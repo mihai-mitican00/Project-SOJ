@@ -10,7 +10,6 @@ import com.endava.tmd.bookclubproject.user.User;
 import com.endava.tmd.bookclubproject.user.UserRepository;
 import com.endava.tmd.bookclubproject.waitinglist.WaitingList;
 import com.endava.tmd.bookclubproject.waitinglist.WaitingListRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,23 +21,14 @@ import java.util.List;
 @Configuration
 public class InitialConfiguration {
 
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private BookRepository bookRepository;
-
-    @Autowired
-    private BookOwnerRepository bookOwnerRepository;
-
-    @Autowired
-    private BookBorrowerRepository bookBorrowerRepository;
-
-    @Autowired
-    private WaitingListRepository waitingListRepository;
 
     @Bean
-    CommandLineRunner commandLineRunner() {
+    CommandLineRunner commandLineRunner(UserRepository userRepository,
+                                        BookRepository bookRepository,
+                                        BookOwnerRepository bookOwnerRepository,
+                                        BookBorrowerRepository bookBorrowerRepository,
+                                        WaitingListRepository waitingListRepository) {
+
         return args -> {
             List<User> initialUsers = createInitialUsers();
             List<Book> initialBooks = createInitialBooks();
@@ -47,16 +37,11 @@ public class InitialConfiguration {
             List<WaitingList> initialWaitingList = createInitialWaitingList();
 
             int strength = 10;
-            String passwordTest = initialUsers.get(0).getPassword();
-            BCryptPasswordEncoder bCryptPasswordEncoder = null;
             for (User user : initialUsers) {
-                bCryptPasswordEncoder = new BCryptPasswordEncoder(strength, new SecureRandom());
+                BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder(strength, new SecureRandom());
                 String encodedPassword = bCryptPasswordEncoder.encode(user.getPassword());
                 user.setPassword(encodedPassword);
             }
-
-             System.out.println(bCryptPasswordEncoder.matches(passwordTest, initialUsers.get(0).getPassword()));
-
 
             userRepository.saveAll(initialUsers);
             bookRepository.saveAll(initialBooks);

@@ -18,8 +18,12 @@ public class BookController {
     private BookService bookService;
 
     @RequestMapping(method = RequestMethod.GET)
-    public List<Book> getBooks() {
-        return bookService.getBooks();
+    public ResponseEntity<List<Book>> getBooks() {
+        List<Book> books = bookService.getBooks();
+        if(BooleanUtilities.emptyList(books)){
+            return HttpResponseUtilities.noContentFound();
+        }
+        return HttpResponseUtilities.operationSuccess(books);
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/AllAvailableBooks")
@@ -34,7 +38,7 @@ public class BookController {
                 .append(book.toString())
                 .append("\n-----------------------------\n")
         );
-        return HttpResponseUtilities.operationWasDone(message.toString());
+        return HttpResponseUtilities.operationSuccess(message.toString());
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/TitleOrAuthor")
@@ -46,15 +50,12 @@ public class BookController {
 
 
     @RequestMapping(method = RequestMethod.GET, value = "/BookOwners")
-    public Object getBookOwners(@RequestParam("bookId") final Optional<Long> bookId) {
-        if (BooleanUtilities.anyEmptyParameters(bookId)) {
-            return HttpResponseUtilities.wrongParameters();
-        }
-        List<User> bookOwners = bookService.getBookOwners(bookId.orElse(null));
+    public ResponseEntity<List<User>> getBookOwners(@RequestParam("bookId") final Long bookId) {
+        List<User> bookOwners = bookService.getBookOwnersOfBook(bookId);
         if (BooleanUtilities.emptyList(bookOwners)) {
             return HttpResponseUtilities.noContentFound();
         }
-        return bookOwners;
+        return HttpResponseUtilities.operationSuccess(bookOwners);
     }
 
 }

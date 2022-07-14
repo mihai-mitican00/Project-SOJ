@@ -3,6 +3,7 @@ package com.endava.tmd.bookclubproject.book;
 import com.endava.tmd.bookclubproject.bookborrower.BookBorrower;
 import com.endava.tmd.bookclubproject.bookowner.BookOwner;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
 import javax.persistence.*;
@@ -25,26 +26,29 @@ public class Book {
             generator = "book_sequence"
     )
     @Id
+    @Schema(hidden = true)
     private Long id;
     @Column(nullable = false)
+    @Schema(description = "Title of the book", example = "The Lord of the Rings")
     private String title;
     @Column(nullable = false)
+    @Schema(description = "Author of the book", example = "J.R.R. Tolkien")
     private String author;
     @Column(nullable = false)
+    @Schema(description = "Edition of the book", example = "I")
     private String edition;
 
     @JsonIgnore
     @OneToMany(
             mappedBy = "book",
-            cascade = {CascadeType.PERSIST, CascadeType.MERGE}
+            cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE}
     )
     private Set<BookOwner> bookOwners = new HashSet<>();
-
 
     @JsonIgnore
     @OneToMany(
             mappedBy = "book",
-            cascade = {CascadeType.PERSIST, CascadeType.MERGE}
+            cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE}
     )
     private Set<BookBorrower> bookBorrowers = new HashSet<>();
 

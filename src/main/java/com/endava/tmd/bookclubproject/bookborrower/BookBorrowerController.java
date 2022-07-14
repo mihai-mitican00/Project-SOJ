@@ -28,20 +28,20 @@ public class BookBorrowerController {
     private BookBorrowerService bookBorrowerService;
 
     @RequestMapping(method = RequestMethod.GET)
-    public Object getAllBookBorrowers() {
+    public ResponseEntity<List<BookBorrower>> getAllBookBorrowers() {
         List<BookBorrower> listOfEntries = bookBorrowerService.getAllBookBorrowers();
-        if (listOfEntries.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        if (BooleanUtilities.emptyList(listOfEntries)) {
+            return HttpResponseUtilities.noContentFound();
         }
-        return listOfEntries;
+        return HttpResponseUtilities.operationSuccess(listOfEntries);
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/BooksUserGave")
-    public ResponseEntity<String> getBooksThatUserGave(@RequestParam("userId") final Optional<Long> userId) {
-        if (userId.isEmpty()) {
+    public ResponseEntity<String> getBooksThatUserGave(@RequestParam("ownerId") final Optional<Long> ownerId) {
+        if (ownerId.isEmpty()) {
             return HttpResponseUtilities.wrongParameters();
         }
-        List<BookBorrower> borrowerList = bookBorrowerService.getBooksThatUserGave(userId.get());
+        List<BookBorrower> borrowerList = bookBorrowerService.getBooksThatUserGave(ownerId.get());
 
         if (borrowerList.isEmpty()) {
             return HttpResponseUtilities.noContentFound();
@@ -52,7 +52,7 @@ public class BookBorrowerController {
                 message.append(bookBorrower.toStringBorrowerFocused())
                         .append("\n------------------------------\n"));
 
-        return HttpResponseUtilities.operationWasDone(message.toString());
+        return HttpResponseUtilities.operationSuccess(message.toString());
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/BooksUserRented")
@@ -71,7 +71,7 @@ public class BookBorrowerController {
                 message.append(bookBorrower.toStringOwnerFocused())
                         .append("\n------------------------------\n"));
 
-        return HttpResponseUtilities.operationWasDone(message.toString());
+        return HttpResponseUtilities.operationSuccess(message.toString());
     }
 
 

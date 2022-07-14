@@ -1,6 +1,8 @@
 package com.endava.tmd.bookclubproject.bookowner;
 
 import com.endava.tmd.bookclubproject.book.Book;
+import com.endava.tmd.bookclubproject.utilities.BooleanUtilities;
+import com.endava.tmd.bookclubproject.utilities.HttpResponseUtilities;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,8 +18,12 @@ public class BookOwnerController {
     private BookOwnerService bookOwnerService;
 
     @RequestMapping(method = RequestMethod.GET)
-    public List<BookOwner> getBooksAndOwners(){
-        return bookOwnerService.getBooksAndOwners();
+    public ResponseEntity<List<BookOwner>> getBooksAndOwners(){
+        List<BookOwner> bookOwners = bookOwnerService.getBooksAndOwners();
+        if(BooleanUtilities.emptyList(bookOwners)){
+            return HttpResponseUtilities.noContentFound();
+        }
+        return HttpResponseUtilities.operationSuccess(bookOwners);
     }
 
     @RequestMapping(method = RequestMethod.POST, params = "userId")

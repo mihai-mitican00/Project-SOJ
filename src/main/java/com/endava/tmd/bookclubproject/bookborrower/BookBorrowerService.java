@@ -37,12 +37,12 @@ public class BookBorrowerService {
         return bookBorrowerRepository.findAll();
     }
 
-    public List<BookBorrower> getBooksThatUserGave(final Long userId) {
-        return bookBorrowerRepository.findBooksThatUserGave(userId);
+    public List<BookBorrower> getBooksThatUserGave(final Long ownerId) {
+        return bookBorrowerRepository.findAllByOwnerId(ownerId);
     }
 
     public List<BookBorrower> getBooksThatUserRented(final Long borrowerId) {
-        return bookBorrowerRepository.findBooksThatUserRented(borrowerId);
+        return bookBorrowerRepository.findAllByBorrowerId(borrowerId);
     }
 
     public ResponseEntity<String> borrowBookFromOwner(final Long bookId, final Long borrowerId, final Long ownerId, final Long weeks) {
@@ -55,7 +55,7 @@ public class BookBorrowerService {
                 || hasBorrowerAlreadyRentTheBook(bookId, borrowerId)
                 || isBookOwnedBy(bookId, borrowerId)
         ) {
-            return HttpResponseUtilities.dataConflict("Borrow cannot be done.");
+            return HttpResponseUtilities.badRequest("Borrow cannot be done.");
         }
 
         Book book = bookRepository.findById(bookId).orElse(new Book());
@@ -63,7 +63,7 @@ public class BookBorrowerService {
         BookBorrower bookBorrower = new BookBorrower(book, borrower, ownerId, weeks);
 
         bookBorrowerRepository.save(bookBorrower);
-        return HttpResponseUtilities.insertDone
+        return HttpResponseUtilities.insertSuccess
                 ("Book with id " + book.getId()
                         + " was borrowed by user with id " + borrower.getId()
                         + " for " + weeks + " weeks");
@@ -71,7 +71,7 @@ public class BookBorrowerService {
 
     public ResponseEntity<String> extendRentingPeriod(final Long bookId, final Long borrowerId) {
         Optional<BookBorrower> bookBorrowerOptional = bookBorrowerRepository
-                .findEntryByBookAndBorrower(bookId, borrowerId);
+                .findByBookIdAndBorrowerId(bookId, borrowerId);
 
         if (bookBorrowerOptional.isEmpty()) {
             return HttpResponseUtilities.noContentFound();
@@ -88,7 +88,7 @@ public class BookBorrowerService {
         bookBorrower.setReturnDate(returnDate.plusWeeks(1));
 
         bookBorrowerRepository.save(bookBorrower);
-        return HttpResponseUtilities.operationWasDone("Renting period was prolonged with one week");
+        return HttpResponseUtilities.operationSuccess("Renting period was prolonged with one week");
     }
 
     private boolean isDataValid(final Long bookId, final Long borrowerId, final Long ownerId) {
@@ -99,16 +99,17 @@ public class BookBorrowerService {
     }
 
     private boolean isBookOwnedBy(final Long bookId, final Long ownerId) {
-        Optional<BookOwner> bookOwnerOptional = bookOwnerRepository.findById(new BookOwnerKey(bookId, ownerId));
+        Optional<BookOwner> bookOwnerOptional = bookOwnerRepository.findByBookIdAndUserId(bookId, ownerId);
         return bookOwnerOptional.isPresent();
     }
 
     private boolean isBookOfOwnerAlreadyBorrowed(final Long bookId, final Long ownerId) {
-        Optional<BookBorrower> bookByOwner = bookBorrowerRepository.findEntryByBookAndOwner(bookId, ownerId);
+        Optional<BookBorrower> bookByOwner = bookBorrowerRepository.findByBookIdAndOwnerId(bookId, ownerId);
         return bookByOwner.isPresent();
     }
+
     private boolean hasBorrowerAlreadyRentTheBook(final Long bookId, final Long borrowerId) {
-        Optional<BookBorrower> borrowerOptional = bookBorrowerRepository.findEntryByBookAndBorrower(bookId, borrowerId);
+        Optional<BookBorrower> borrowerOptional = bookBorrowerRepository.findByBookIdAndBorrowerId(bookId, borrowerId);
         return borrowerOptional.isPresent();
     }
 }

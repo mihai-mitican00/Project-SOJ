@@ -20,12 +20,12 @@ public class WaitingListController {
     private WaitingListService waitingListService;
 
     @RequestMapping(method = RequestMethod.GET)
-    public Object getAllOnWaitingList() {
+    public ResponseEntity<List<WaitingList>> getAllOnWaitingList() {
         List<WaitingList> listOfEntries = waitingListService.getAllOnWaitingList();
         if (BooleanUtilities.emptyList(listOfEntries)) {
             return HttpResponseUtilities.noContentFound();
         }
-        return listOfEntries;
+        return HttpResponseUtilities.operationSuccess(listOfEntries);
     }
 
     @RequestMapping(method = RequestMethod.POST)
