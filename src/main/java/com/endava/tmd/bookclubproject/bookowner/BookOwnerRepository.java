@@ -12,7 +12,7 @@ import java.util.Optional;
 
 @SuppressWarnings("SqlDialectInspection")
 @Repository
-public interface BookOwnerRepository extends JpaRepository <BookOwner, BookOwnerKey> {
+public interface BookOwnerRepository extends JpaRepository <BookOwner, BookOwnerId> {
     List<BookOwner> findAllByBookId(final Long bookId);
 
     @Query(value = "SELECT bo.user FROM  BookOwner bo WHERE bo.book.id = ?1")

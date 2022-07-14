@@ -26,7 +26,7 @@ public class Book {
             generator = "book_sequence"
     )
     @Id
-    @Schema(hidden = true)
+    @Schema(description = "Unique id, auto-generated.", example = "5")
     private Long id;
     @Column(nullable = false)
     @Schema(description = "Title of the book", example = "The Lord of the Rings")

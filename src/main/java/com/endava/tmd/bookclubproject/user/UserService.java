@@ -72,20 +72,17 @@ public class UserService {
         return HttpResponseUtilities.insertSuccess("User account created with success!");
     }
 
-    public ResponseEntity<String> deleteUser(Optional<Long> userId) {
-        if (userId.isEmpty()) {
-            return HttpResponseUtilities.wrongParameters();
-        }
+    public ResponseEntity<String> deleteUser(final Long userId) {
 
-        Optional<User> optionalUser = userRepository.findById(userId.get());
+        Optional<User> optionalUser = userRepository.findById(userId);
         if (optionalUser.isEmpty()) {
             return HttpResponseUtilities.noContentFound();
         }
 
-        waitingListRepository.deleteAllByUserId(userId.get());
-        bookBorrowerRepository.deleteAllByBorrowerId(userId.get());
-        bookBorrowerRepository.deleteAllByOwnerId(userId.get());
-        deleteAllBooksOwnedByAnUser(userId.get());
+        waitingListRepository.deleteAllByUserId(userId);
+        bookBorrowerRepository.deleteAllByBorrowerId(userId);
+        bookBorrowerRepository.deleteAllByOwnerId(userId);
+        deleteAllBooksOwnedByAnUser(userId);
         userRepository.delete(optionalUser.get());
         return HttpResponseUtilities.operationSuccess("User " + optionalUser.get().getUsername() + " and all his work deleted!");
     }

@@ -36,12 +36,12 @@ public class BookOwnerService {
 
     public ResponseEntity<String> addBookByUserId(final Long userId, final Optional<Book> bookOptional) {
         Optional<User> userOptional = userRepository.findById(userId);
-        if (userOptional.isEmpty() || bookOptional.isEmpty()) {
-            return HttpResponseUtilities.noContentFound();
+        if (userOptional.isEmpty()) {
+            return HttpResponseUtilities.badRequest("User with given id does not exist.");
         }
 
-        if (hasIncompleteData(bookOptional)) {
-            return HttpResponseUtilities.notAcceptable("Book has incomplete data, enter something on all fields!");
+        if (bookOptional.isEmpty() || hasIncompleteData(bookOptional)) {
+            return HttpResponseUtilities.badRequest("Book has incomplete data, enter something on all fields!");
         }
 
         User user = userOptional.get();
@@ -60,7 +60,7 @@ public class BookOwnerService {
             //Verify that given user did not already added same book in the virtual shelter
             List<Book> booksOwnedByUser = bookOwnerRepository.findBooksOfUser(userId);
             if (booksOwnedByUser.contains(bookAlreadyPresent.get())) {
-                return HttpResponseUtilities.dataConflict("You already added this book to user with id " + user.getId() + "!");
+                return HttpResponseUtilities.badRequest("User with id " + user.getId() + " already added this book!");
             } else {
                 bookOwner.setBook(bookAlreadyPresent.get());
                 bookOwnerRepository.saveAndFlush(bookOwner);
@@ -73,30 +73,27 @@ public class BookOwnerService {
         return HttpResponseUtilities.insertSuccess("Book added with success!");
     }
 
-    public ResponseEntity<String> deleteBookFromUser(final Optional<Long> bookId, final Optional<Long> ownerId) {
-        if (BooleanUtilities.anyEmptyParameters(bookId, ownerId)) {
-            return HttpResponseUtilities.wrongParameters();
-        }
+    public ResponseEntity<String> deleteBookFromUser(final Long bookId, final Long ownerId) {
 
-        Optional<Book> bookOptional = bookRepository.findById(bookId.orElse(0L));
-        Optional<User> ownerOptional = userRepository.findById(ownerId.orElse(0L));
+        Optional<Book> bookOptional = bookRepository.findById(bookId);
+        Optional<User> ownerOptional = userRepository.findById(ownerId);
+
         if (bookOptional.isEmpty() || ownerOptional.isEmpty()) {
-            return HttpResponseUtilities.noContentFound();
+            return HttpResponseUtilities.badRequest("There is no book or owner with given id's.");
         }
         Book book = bookOptional.get();
         User owner = ownerOptional.get();
 
-        Optional<BookOwner> bookOwnerOptional = bookOwnerRepository.findById(new BookOwnerKey(book.getId(), owner.getId()));
+        Optional<BookOwner> bookOwnerOptional = bookOwnerRepository.findByBookIdAndUserId(bookId, ownerId);
         if (bookOwnerOptional.isEmpty()) {
-            return HttpResponseUtilities.noContentFound();
+            return HttpResponseUtilities.badRequest("Given book does not belong to given owner.");
         }
 
-        bookBorrowerRepository.deleteByBookIdAndOwnerId(book.getId(), owner.getId());
-
+        bookBorrowerRepository.deleteByBookIdAndOwnerId(bookId, ownerId);
         BookOwner bookOwner = bookOwnerOptional.get();
         bookOwnerRepository.delete(bookOwner);
 
-        List<BookOwner> leftEntries = bookOwnerRepository.findAllByBookId(book.getId());
+        List<BookOwner> leftEntries = bookOwnerRepository.findAllByBookId(bookId);
         if (leftEntries.isEmpty()) {
             bookRepository.delete(book);
         }

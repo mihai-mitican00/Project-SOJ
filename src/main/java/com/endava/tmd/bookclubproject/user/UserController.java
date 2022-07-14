@@ -5,26 +5,20 @@ import com.endava.tmd.bookclubproject.utilities.BooleanUtilities;
 import com.endava.tmd.bookclubproject.utilities.HttpResponseUtilities;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.links.Link;
 import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
-
-@RestController
 @Tag(name = "User")
+@RestController
 @RequestMapping(path = "users")
 public class UserController {
-
-    private static final User body = new User("adi","adi", "adi", "adi", "adi");
 
     @Autowired
     private UserService userService;
@@ -36,7 +30,7 @@ public class UserController {
             description = "Getting all users registered within application.",
             responses = {
                     @ApiResponse(
-                            description = "Get users with success.",
+                            description = "See all the users with success.",
                             responseCode = "200",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = User.class))
                     ),
@@ -74,7 +68,7 @@ public class UserController {
 
             }
     )
-    public ResponseEntity<List<Book>> getBooksOwned(@RequestParam("userId") Long userId) {
+    public ResponseEntity<List<Book>> getBooksOwned(@RequestParam("userId") final Long userId) {
         List<Book> booksOwned = userService.getBooksOwned(userId);
         if (booksOwned.isEmpty()) {
             return HttpResponseUtilities.noContentFound();
@@ -93,16 +87,15 @@ public class UserController {
                             content = @Content
                     ),
                     @ApiResponse(
-                            description = "Details for account creation are not complete.",
-                            responseCode = "406",
-                            content = @Content
-                    ),
-                    @ApiResponse(
                             description = "Username or email already used.",
                             responseCode = "400",
                             content = @Content
+                    ),
+                    @ApiResponse(
+                            description = "Details for account creation are not complete.",
+                            responseCode = "406",
+                            content = @Content
                     )
-
             }
     )
     public ResponseEntity<String> registerUser(@RequestBody final Optional<User> userOptional) {
@@ -115,24 +108,18 @@ public class UserController {
             description = "Delete the user with given id and all of his traces, including borrows he made, books he owns etc.",
             responses = {
                     @ApiResponse(
-                            description = "User account created with success.",
-                            responseCode = "201",
+                            description = "User account and every action he made deleted with success.",
+                            responseCode = "200",
                             content = @Content
                     ),
                     @ApiResponse(
-                            description = "Details for account creation are not complete.",
-                            responseCode = "406",
-                            content = @Content
-                    ),
-                    @ApiResponse(
-                            description = "Username or email already used.",
-                            responseCode = "400",
+                            description = "User with given id not found.",
+                            responseCode = "204",
                             content = @Content
                     )
-
             }
     )
-    public ResponseEntity<String> deleteUser(@RequestParam("userId") final Optional<Long> userId) {
+    public ResponseEntity<String> deleteUser(@RequestParam("userId") final Long userId) {
         return userService.deleteUser(userId);
     }
 

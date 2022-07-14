@@ -4,13 +4,12 @@ import com.endava.tmd.bookclubproject.bookborrower.BookBorrower;
 import com.endava.tmd.bookclubproject.bookowner.BookOwner;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @SuppressWarnings("JpaDataSourceORMInspection")
 @Data
@@ -28,7 +27,7 @@ public class User {
             strategy = GenerationType.SEQUENCE,
             generator = "user_sequence"
     )
-    @Schema(hidden = true)
+    @Schema(description = "Unique id, auto-generated.", example = "5")
     @Id
     private Long id;
     @Column(nullable = false)

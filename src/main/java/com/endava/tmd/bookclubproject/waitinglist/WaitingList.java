@@ -1,5 +1,6 @@
 package com.endava.tmd.bookclubproject.waitinglist;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -22,12 +23,15 @@ public class WaitingList {
             strategy = GenerationType.SEQUENCE,
             generator = "waiting_list_sequence"
     )
+    @Schema(description = "Auto-generated id", example = "2")
     @Id
     private Long id;
 
+    @Schema(description = "Book id", example = "2")
     @Column(name = "book_id", nullable = false)
     private Long bookId;
 
+    @Schema(description = "User id", example = "3")
     @Column(name = "user_id", nullable = false)
     private Long userId;
 

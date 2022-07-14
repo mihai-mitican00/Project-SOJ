@@ -47,23 +47,23 @@ public class WaitingListService {
         }
 
         if(entryAlreadyPresent(bookId, userId)){
-            return HttpResponseUtilities.dataConflict("User with id " + userId +
+            return HttpResponseUtilities.badRequest("User with id " + userId +
                     " already added himself on waiting list for book with id " + bookId);
         }
 
         if(userOwnsTheBook(bookId, userId)){
-            return HttpResponseUtilities.dataConflict(
+            return HttpResponseUtilities.badRequest(
                     "User cannot be added on waiting list for his own book.");
         }
 
         if(bookAlreadyBorrowedByThisUser(bookId, userId)){
-            return HttpResponseUtilities.dataConflict(
+            return HttpResponseUtilities.badRequest(
                     "User having id " + userId +
                             " is already renting book with id " + bookId);
         }
 
         if(!bookAlreadyBorrowedByThisUser(bookId, userId)){
-            return HttpResponseUtilities.notAcceptable("You cannot add yourself on the waiting list for a book that is not already rented!");
+            return HttpResponseUtilities.badRequest("You cannot add yourself on the waiting list for a book that is not already rented!");
         }
 
 
