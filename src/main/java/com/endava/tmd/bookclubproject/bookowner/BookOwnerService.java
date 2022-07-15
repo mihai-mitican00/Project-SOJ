@@ -30,8 +30,12 @@ public class BookOwnerService {
     @Autowired
     private UserRepository userRepository;
 
-    public List<BookOwner> getBooksAndOwners() {
-        return bookOwnerRepository.findAll();
+    public ResponseEntity<List<BookOwner>> getAllBookOwners() {
+        List<BookOwner> bookOwners = bookOwnerRepository.findAll();
+        if (BooleanUtilities.emptyList(bookOwners)) {
+            return HttpResponseUtilities.noContentFound();
+        }
+        return HttpResponseUtilities.operationSuccess(bookOwners);
     }
 
     public ResponseEntity<String> addBookByUserId(final Long userId, final Optional<Book> bookOptional) {

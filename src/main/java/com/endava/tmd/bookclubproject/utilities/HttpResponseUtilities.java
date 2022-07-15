@@ -5,10 +5,6 @@ import org.springframework.http.ResponseEntity;
 
 public interface HttpResponseUtilities {
 
-    static  ResponseEntity<String> wrongParameters(){
-        return new ResponseEntity<>("Parameters introduced are wrong!", HttpStatus.NOT_ACCEPTABLE);
-    }
-
     static <T> ResponseEntity<T> noContentFound(){
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }

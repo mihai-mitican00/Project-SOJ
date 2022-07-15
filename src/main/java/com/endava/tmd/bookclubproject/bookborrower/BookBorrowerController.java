@@ -44,11 +44,7 @@ public class BookBorrowerController {
             }
     )
     public ResponseEntity<List<BookBorrower>> getAllBookBorrowers() {
-        List<BookBorrower> listOfEntries = bookBorrowerService.getAllBookBorrowers();
-        if (BooleanUtilities.emptyList(listOfEntries)) {
-            return HttpResponseUtilities.noContentFound();
-        }
-        return HttpResponseUtilities.operationSuccess(listOfEntries);
+        return bookBorrowerService.getAllBookBorrowers();
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/BooksUserGave")
@@ -69,19 +65,7 @@ public class BookBorrowerController {
             }
     )
     public ResponseEntity<String> getBooksThatUserGave(@RequestParam("ownerId") final Long ownerId) {
-
-        List<BookBorrower> borrowerList = bookBorrowerService.getBooksThatUserGave(ownerId);
-
-        if (borrowerList.isEmpty()) {
-            return HttpResponseUtilities.noContentFound();
-        }
-
-        StringBuilder message = new StringBuilder();
-        borrowerList.forEach(bookBorrower ->
-                message.append(bookBorrower.toStringBorrowerFocused())
-                        .append("\n------------------------------\n"));
-
-        return HttpResponseUtilities.operationSuccess(message.toString());
+        return bookBorrowerService.getBooksThatUserGave(ownerId);
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/BooksUserRented")
@@ -102,41 +86,9 @@ public class BookBorrowerController {
             }
     )
     public ResponseEntity<String> getBooksThatUserRented(@RequestParam("borrowerId") final Long borrowerId) {
-        List<BookBorrower> borrowerList = bookBorrowerService.getBooksThatUserRented(borrowerId);
-        if (BooleanUtilities.emptyList(borrowerList)) {
-            return HttpResponseUtilities.noContentFound();
-        }
-
-        StringBuilder message = new StringBuilder();
-        borrowerList.forEach(bookBorrower ->
-                message.append(bookBorrower.toStringOwnerFocused())
-                        .append("\n------------------------------\n"));
-
-        return HttpResponseUtilities.operationSuccess(message.toString());
+        return bookBorrowerService.getBooksThatUserRented(borrowerId);
     }
 
-
-    @RequestMapping(method = RequestMethod.PUT)
-    @Operation(
-            summary = "Extend a rent.",
-            description = "Extend the return date of a rent, with one week, until the renting period reaches a maximum of 5 weeks.",
-            responses = {
-                    @ApiResponse(
-                            description = "Book return date extended successfully.",
-                            responseCode = "200",
-                            content = @Content
-                    ),
-                    @ApiResponse(
-                            description = "Return date extend failed.",
-                            responseCode = "400",
-                            content = @Content
-                    )
-            }
-    )
-    public ResponseEntity<String> extendRentingPeriod(@RequestParam("bookId") final Long bookId,
-                                                      @RequestParam("borrowerId") final Long borrowerId) {
-        return bookBorrowerService.extendRentingPeriod(bookId, borrowerId);
-    }
 
     @RequestMapping(method = RequestMethod.POST)
     @Operation(
@@ -160,7 +112,29 @@ public class BookBorrowerController {
                                                       @RequestParam("ownerId") final Long ownerId,
                                                       @RequestParam("weeks") final Long weeksToRent
     ) {
-            return bookBorrowerService.borrowBookFromOwner(bookId, borrowerId, ownerId, weeksToRent);
+        return bookBorrowerService.borrowBookFromOwner(bookId, borrowerId, ownerId, weeksToRent);
+    }
+
+    @RequestMapping(method = RequestMethod.PUT)
+    @Operation(
+            summary = "Extend a rent.",
+            description = "Extend the return date of a rent, with one week, until the renting period reaches a maximum of 5 weeks.",
+            responses = {
+                    @ApiResponse(
+                            description = "Book return date extended successfully.",
+                            responseCode = "200",
+                            content = @Content
+                    ),
+                    @ApiResponse(
+                            description = "Return date extend failed.",
+                            responseCode = "400",
+                            content = @Content
+                    )
+            }
+    )
+    public ResponseEntity<String> extendRentingPeriod(@RequestParam("bookId") final Long bookId,
+                                                      @RequestParam("borrowerId") final Long borrowerId) {
+        return bookBorrowerService.extendRentingPeriod(bookId, borrowerId);
     }
 
 }

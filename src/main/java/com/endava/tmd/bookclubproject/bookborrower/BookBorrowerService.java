@@ -6,6 +6,8 @@ import com.endava.tmd.bookclubproject.bookowner.BookOwner;
 import com.endava.tmd.bookclubproject.bookowner.BookOwnerRepository;
 import com.endava.tmd.bookclubproject.user.User;
 import com.endava.tmd.bookclubproject.user.UserRepository;
+import com.endava.tmd.bookclubproject.utilities.BooleanUtilities;
+import com.endava.tmd.bookclubproject.utilities.HttpResponseUtilities;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -32,27 +34,52 @@ public class BookBorrowerService {
     @Autowired
     private UserRepository userRepository;
 
-    public List<BookBorrower> getAllBookBorrowers() {
-        return bookBorrowerRepository.findAll();
+    public ResponseEntity<List<BookBorrower>> getAllBookBorrowers() {
+        List<BookBorrower> listOfEntries = bookBorrowerRepository.findAll();
+        if (BooleanUtilities.emptyList(listOfEntries)) {
+            return HttpResponseUtilities.noContentFound();
+        }
+        return HttpResponseUtilities.operationSuccess(listOfEntries);
+
     }
 
-    public List<BookBorrower> getBooksThatUserGave(final Long ownerId) {
-        return bookBorrowerRepository.findAllByOwnerId(ownerId);
+    public ResponseEntity<String> getBooksThatUserGave(final Long ownerId) {
+        List<BookBorrower> borrowerList = bookBorrowerRepository.findAllByOwnerId(ownerId);
+        if (borrowerList.isEmpty()) {
+            return HttpResponseUtilities.noContentFound();
+        }
+
+        StringBuilder message = new StringBuilder();
+        borrowerList.forEach(bookBorrower ->
+                message.append(bookBorrower.toStringBorrowerFocused())
+                        .append("\n------------------------------\n"));
+
+        return HttpResponseUtilities.operationSuccess(message.toString());
     }
 
-    public List<BookBorrower> getBooksThatUserRented(final Long borrowerId) {
-        return bookBorrowerRepository.findAllByBorrowerId(borrowerId);
+    public ResponseEntity<String> getBooksThatUserRented(final Long borrowerId) {
+        List<BookBorrower> borrowerList = bookBorrowerRepository.findAllByBorrowerId(borrowerId);
+        if (BooleanUtilities.emptyList(borrowerList)) {
+            return HttpResponseUtilities.noContentFound();
+        }
+
+        StringBuilder message = new StringBuilder();
+        borrowerList.forEach(bookBorrower ->
+                message.append(bookBorrower.toStringOwnerFocused())
+                        .append("\n------------------------------\n"));
+
+        return HttpResponseUtilities.operationSuccess(message.toString());
     }
 
     public ResponseEntity<String> borrowBookFromOwner(final Long bookId, final Long borrowerId, final Long ownerId, final Long weeks) {
 
         if (!isDataValid(bookId, borrowerId, ownerId, weeks)) {
             return badRequest("Data introduced for borrow is not valid, the borrow cannot be done.");
-        }else if(!isBookOwnedBy(bookId, ownerId)){
+        } else if (!isBookOwnedBy(bookId, ownerId)) {
             return badRequest("The book does not belong to given owner.");
-        }else if(isBookOfOwnerAlreadyBorrowed(bookId, ownerId)){
+        } else if (isBookOfOwnerAlreadyBorrowed(bookId, ownerId)) {
             return badRequest("The given book is already borrowed at the moment.");
-        }else if(hasBorrowerAlreadyRentTheBook(bookId, borrowerId)){
+        } else if (hasBorrowerAlreadyRentTheBook(bookId, borrowerId)) {
             return badRequest("Given borrower has already rented this book.");
         } else if (isBookOwnedBy(bookId, borrowerId)) {
             return badRequest("The user cannot rent a book that himself owns.");

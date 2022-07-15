@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Optional;
+
 @Tag(name = "Book")
 @RestController
 @RequestMapping("books")
@@ -42,12 +43,8 @@ public class BookController {
                     )
             }
     )
-    public ResponseEntity<List<Book>> getBooks() {
-        List<Book> books = bookService.getBooks();
-        if (BooleanUtilities.emptyList(books)) {
-            return HttpResponseUtilities.noContentFound();
-        }
-        return HttpResponseUtilities.operationSuccess(books);
+    public ResponseEntity<List<Book>> getAllBooks() {
+        return bookService.getAllBooks();
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/AllAvailableBooks")
@@ -68,17 +65,7 @@ public class BookController {
             }
     )
     public ResponseEntity<String> getAllAvailableBooks() {
-        List<Book> availableBooks = bookService.getAllAvailableBooks();
-        if (BooleanUtilities.emptyList(availableBooks)) {
-            return HttpResponseUtilities.noContentFound();
-        }
-        StringBuilder message = new StringBuilder();
-        availableBooks.forEach(book ->
-                message
-                        .append(book.toString())
-                        .append("\n-----------------------------\n")
-        );
-        return HttpResponseUtilities.operationSuccess(message.toString());
+        return bookService.getAllAvailableBooks();
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/TitleOrAuthor")
@@ -100,10 +87,8 @@ public class BookController {
     )
     public ResponseEntity<String> getBooksByTitleOrAuthor(@RequestParam("title") final Optional<String> title,
                                                           @RequestParam("author") final Optional<String> author) {
-
         return bookService.allBooksByTitleOrAuthor(title, author);
     }
-
 
     @RequestMapping(method = RequestMethod.GET, value = "/BookOwners")
     @Operation(
@@ -122,12 +107,8 @@ public class BookController {
                     ),
             }
     )
-    public ResponseEntity<List<User>> getBookOwners(@RequestParam("bookId") final Long bookId) {
-        List<User> bookOwners = bookService.getBookOwnersOfBook(bookId);
-        if (BooleanUtilities.emptyList(bookOwners)) {
-            return HttpResponseUtilities.noContentFound();
-        }
-        return HttpResponseUtilities.operationSuccess(bookOwners);
+    public ResponseEntity<List<User>> getBookOwnersOfBook(@RequestParam("bookId") final Long bookId) {
+        return bookService.getBookOwnersOfBook(bookId);
     }
 
 }

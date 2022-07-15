@@ -1,10 +1,7 @@
 package com.endava.tmd.bookclubproject.user;
 
 import com.endava.tmd.bookclubproject.book.Book;
-import com.endava.tmd.bookclubproject.utilities.BooleanUtilities;
-import com.endava.tmd.bookclubproject.utilities.HttpResponseUtilities;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -15,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
+
 @Tag(name = "User")
 @RestController
 @RequestMapping(path = "users")
@@ -42,12 +40,8 @@ public class UserController {
 
             }
     )
-    public ResponseEntity<List<User>> getUsers() {
-        List<User> usersList = userService.getUsers();
-        if (BooleanUtilities.emptyList(usersList)) {
-            return HttpResponseUtilities.noContentFound();
-        }
-        return HttpResponseUtilities.operationSuccess(usersList);
+    public ResponseEntity<List<User>> getAllUsers() {
+        return userService.getAllUsers();
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "BooksOwned")
@@ -68,12 +62,8 @@ public class UserController {
 
             }
     )
-    public ResponseEntity<List<Book>> getBooksOwned(@RequestParam("userId") final Long userId) {
-        List<Book> booksOwned = userService.getBooksOwned(userId);
-        if (booksOwned.isEmpty()) {
-            return HttpResponseUtilities.noContentFound();
-        }
-        return HttpResponseUtilities.operationSuccess(booksOwned);
+    public ResponseEntity<List<Book>> getBooksOfUser(@RequestParam("userId") final Long userId) {
+        return userService.getBooksOfUser(userId);
     }
 
     @RequestMapping(method = RequestMethod.POST)

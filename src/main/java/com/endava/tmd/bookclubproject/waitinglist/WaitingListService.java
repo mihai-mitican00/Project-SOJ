@@ -8,14 +8,12 @@ import com.endava.tmd.bookclubproject.bookowner.BookOwner;
 import com.endava.tmd.bookclubproject.bookowner.BookOwnerRepository;
 import com.endava.tmd.bookclubproject.user.User;
 import com.endava.tmd.bookclubproject.user.UserRepository;
+import com.endava.tmd.bookclubproject.utilities.BooleanUtilities;
 import com.endava.tmd.bookclubproject.utilities.HttpResponseUtilities;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
 import java.util.List;
 import java.util.Optional;
 
@@ -37,8 +35,12 @@ public class WaitingListService {
     @Autowired
     private BookBorrowerRepository bookBorrowerRepository;
 
-    public List<WaitingList> getAllOnWaitingList() {
-        return waitingListRepository.findAll();
+    public ResponseEntity<List<WaitingList>> getAllOnWaitingList() {
+        List<WaitingList> listOfEntries = waitingListRepository.findAll();
+        if (BooleanUtilities.emptyList(listOfEntries)) {
+            return HttpResponseUtilities.noContentFound();
+        }
+        return HttpResponseUtilities.operationSuccess(listOfEntries);
     }
 
     public ResponseEntity<String> addUserOnList(final Long bookId, final Long userId) {

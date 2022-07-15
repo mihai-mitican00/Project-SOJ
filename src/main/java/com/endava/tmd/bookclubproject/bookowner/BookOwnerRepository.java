@@ -20,8 +20,6 @@ public interface BookOwnerRepository extends JpaRepository <BookOwner, BookOwner
     @Query(value = "SELECT bo.book FROM  BookOwner bo WHERE bo.user.id = ?1")
     List<Book> findBooksOfUser(final Long userId);
 
-    @Query(value = "SELECT bo.book FROM  BookOwner bo WHERE bo.book.title = ?1 OR bo.book.author = ?2")
-    List<Book> findBooksByTitleOrAuthor(final Optional<String> title, final Optional<String> author);
     @Query(value = "SELECT bo.book FROM BookOwner bo")
     List<Book> findAllOwnedBooks();
 

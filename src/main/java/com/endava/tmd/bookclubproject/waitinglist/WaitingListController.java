@@ -1,7 +1,5 @@
 package com.endava.tmd.bookclubproject.waitinglist;
 
-import com.endava.tmd.bookclubproject.utilities.BooleanUtilities;
-import com.endava.tmd.bookclubproject.utilities.HttpResponseUtilities;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -41,11 +39,7 @@ public class WaitingListController {
             }
     )
     public ResponseEntity<List<WaitingList>> getAllOnWaitingList() {
-        List<WaitingList> listOfEntries = waitingListService.getAllOnWaitingList();
-        if (BooleanUtilities.emptyList(listOfEntries)) {
-            return HttpResponseUtilities.noContentFound();
-        }
-        return HttpResponseUtilities.operationSuccess(listOfEntries);
+        return waitingListService.getAllOnWaitingList();
     }
 
     @RequestMapping(method = RequestMethod.POST)

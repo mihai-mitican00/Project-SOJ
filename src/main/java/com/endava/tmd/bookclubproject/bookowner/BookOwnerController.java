@@ -40,12 +40,8 @@ public class BookOwnerController {
                     )
             }
     )
-    public ResponseEntity<List<BookOwner>> getBooksAndOwners() {
-        List<BookOwner> bookOwners = bookOwnerService.getBooksAndOwners();
-        if (BooleanUtilities.emptyList(bookOwners)) {
-            return HttpResponseUtilities.noContentFound();
-        }
-        return HttpResponseUtilities.operationSuccess(bookOwners);
+    public ResponseEntity<List<BookOwner>> getAllBookOwners() {
+        return bookOwnerService.getAllBookOwners();
     }
 
     @RequestMapping(method = RequestMethod.POST)

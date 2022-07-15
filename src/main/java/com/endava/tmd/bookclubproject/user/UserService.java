@@ -39,8 +39,12 @@ public class UserService {
     @Autowired
     private WaitingListRepository waitingListRepository;
 
-    public List<User> getUsers() {
-        return userRepository.findAll();
+    public ResponseEntity<List<User>> getAllUsers() {
+        List<User> usersList = userRepository.findAll();
+        if (BooleanUtilities.emptyList(usersList)) {
+            return HttpResponseUtilities.noContentFound();
+        }
+        return HttpResponseUtilities.operationSuccess(usersList);
     }
 
 
@@ -87,8 +91,12 @@ public class UserService {
         return HttpResponseUtilities.operationSuccess("User " + optionalUser.get().getUsername() + " and all his work deleted!");
     }
 
-    public List<Book> getBooksOwned(final Long userId) {
-        return bookOwnerRepository.findBooksOfUser(userId);
+    public ResponseEntity<List<Book>> getBooksOfUser(final Long userId) {
+        List<Book> booksOwned = bookOwnerRepository.findBooksOfUser(userId);
+        if (booksOwned.isEmpty()) {
+            return HttpResponseUtilities.noContentFound();
+        }
+        return HttpResponseUtilities.operationSuccess(booksOwned);
     }
 
     private boolean hasIncompleteData(Optional<User> userOptional) {
