@@ -10,13 +10,14 @@
     </parent>
     <groupId>com.endava.tmd</groupId>
     <artifactId>book-club-project</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>1.0.0-SNAPSHOT</version>
     <name>book-club-project</name>
     <description>Project for School of Java</description>
     <properties>
         <java.version>17</java.version>
     </properties>
     <dependencies>
+
 
 
         <dependency>
@@ -54,6 +55,14 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-ui</artifactId>
+            <version>1.6.9</version>
+        </dependency>
+
+
     </dependencies>
 
     <build>

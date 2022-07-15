@@ -8,10 +8,6 @@ import java.util.Optional;
 public interface BooleanUtilities {
 
     @SafeVarargs
-    static <T> boolean anyEmptyParameters(final Optional<T>... args){
-        return Arrays.stream(args).anyMatch(Optional::isEmpty);
-    }
-    @SafeVarargs
     static<T> boolean anyNullParameters(final T... args){
         return Arrays.stream(args).anyMatch(Objects::isNull);
     }

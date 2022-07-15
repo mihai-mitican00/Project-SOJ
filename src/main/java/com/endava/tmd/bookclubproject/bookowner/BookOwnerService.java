@@ -30,29 +30,22 @@ public class BookOwnerService {
     @Autowired
     private UserRepository userRepository;
 
-    public List<BookOwner> getBooksAndOwners() {
-        return bookOwnerRepository.findAll();
-    }
-
-    public List<Book> getBooksOwnedByUser(final Long userId) {
-        List<BookOwner> bookOwnersEntries = bookOwnerRepository.getEntriesByUserId(userId);
-        return bookOwnersEntries.stream()
-                .filter(bookOwner -> bookOwner.getUser().getId().equals(userId))
-                .map(BookOwner::getBook)
-                .toList();
-
+    public ResponseEntity<List<BookOwner>> getAllBookOwners() {
+        List<BookOwner> bookOwners = bookOwnerRepository.findAll();
+        if (BooleanUtilities.emptyList(bookOwners)) {
+            return HttpResponseUtilities.noContentFound();
+        }
+        return HttpResponseUtilities.operationSuccess(bookOwners);
     }
 
     public ResponseEntity<String> addBookByUserId(final Long userId, final Optional<Book> bookOptional) {
-
         Optional<User> userOptional = userRepository.findById(userId);
-
-        if (userOptional.isEmpty() || bookOptional.isEmpty()) {
-            return HttpResponseUtilities.noContentFound();
+        if (userOptional.isEmpty()) {
+            return HttpResponseUtilities.badRequest("User with given id does not exist.");
         }
 
-        if (hasIncompleteData(bookOptional)) {
-            return HttpResponseUtilities.notAcceptable("Book has incomplete data, enter something on all fields!");
+        if (bookOptional.isEmpty() || hasIncompleteData(bookOptional)) {
+            return HttpResponseUtilities.badRequest("Book has incomplete data, enter something on all fields!");
         }
 
         User user = userOptional.get();
@@ -60,16 +53,18 @@ public class BookOwnerService {
         BookOwner bookOwner = new BookOwner(book, user);
 
         Optional<Book> bookAlreadyPresent = bookRepository
-                .findBooksByAllFields(
+                .findByTitleAndAuthorAndEdition(
                         book.getTitle(),
                         book.getAuthor(),
-                        book.getEdition());
+                        book.getEdition()
+                );
 
         //Check if book already exists in the virtual shelter
         if (bookAlreadyPresent.isPresent()) {
             //Verify that given user did not already added same book in the virtual shelter
-            if (getBooksOwnedByUser(userId).contains(bookAlreadyPresent.get())) {
-                return HttpResponseUtilities.dataConflict("You already added this book to user with id " + user.getId() + "!");
+            List<Book> booksOwnedByUser = bookOwnerRepository.findBooksOfUser(userId);
+            if (booksOwnedByUser.contains(bookAlreadyPresent.get())) {
+                return HttpResponseUtilities.badRequest("User with id " + user.getId() + " already added this book!");
             } else {
                 bookOwner.setBook(bookAlreadyPresent.get());
                 bookOwnerRepository.saveAndFlush(bookOwner);
@@ -79,39 +74,36 @@ public class BookOwnerService {
             bookOwnerRepository.saveAndFlush(bookOwner);
         }
 
-        return HttpResponseUtilities.insertDone("Book added with success!");
+        return HttpResponseUtilities.insertSuccess("Book added with success!");
     }
 
-    public ResponseEntity<String> deleteBookFromUser(final Optional<Long> bookId, final Optional<Long> userId) {
-        if (BooleanUtilities.anyEmptyParameters(bookId, userId)) {
-            return HttpResponseUtilities.wrongParameters();
-        }
+    public ResponseEntity<String> deleteBookFromUser(final Long bookId, final Long ownerId) {
 
-        Optional<Book> bookOptional = bookRepository.findById(bookId.orElse(0L));
-        Optional<User> userOptional = userRepository.findById(userId.orElse(0L));
-        if (bookOptional.isEmpty() || userOptional.isEmpty()) {
-            return HttpResponseUtilities.noContentFound();
+        Optional<Book> bookOptional = bookRepository.findById(bookId);
+        Optional<User> ownerOptional = userRepository.findById(ownerId);
+
+        if (bookOptional.isEmpty() || ownerOptional.isEmpty()) {
+            return HttpResponseUtilities.badRequest("There is no book or owner with given id's.");
         }
         Book book = bookOptional.get();
-        User user = userOptional.get();
+        User owner = ownerOptional.get();
 
-        Optional<BookOwner> bookOwnerOptional = bookOwnerRepository.findById(new BookOwnerKey(book.getId(), user.getId()));
+        Optional<BookOwner> bookOwnerOptional = bookOwnerRepository.findByBookIdAndUserId(bookId, ownerId);
         if (bookOwnerOptional.isEmpty()) {
-            return HttpResponseUtilities.noContentFound();
+            return HttpResponseUtilities.badRequest("Given book does not belong to given owner.");
         }
 
-        deleteAllBorrowsOfAnBook(book.getId());
-
+        bookBorrowerRepository.deleteByBookIdAndOwnerId(bookId, ownerId);
         BookOwner bookOwner = bookOwnerOptional.get();
         bookOwnerRepository.delete(bookOwner);
 
-        List<BookOwner> leftEntries = bookOwnerRepository.getEntriesByBookId(book.getId());
+        List<BookOwner> leftEntries = bookOwnerRepository.findAllByBookId(bookId);
         if (leftEntries.isEmpty()) {
             bookRepository.delete(book);
         }
 
-        return HttpResponseUtilities.operationWasDone("User with user id "
-                + user.getUsername() + " deleted book " + book.getTitle() + " with success!");
+        return HttpResponseUtilities.operationSuccess("Owner with user id "
+                + owner.getUsername() + " deleted book " + book.getTitle() + " with success!");
     }
 
     private boolean hasIncompleteData(Optional<Book> bookOptional) {
@@ -120,12 +112,4 @@ public class BookOwnerService {
         return BooleanUtilities.anyNullParameters(bookData) || BooleanUtilities.anyEmptyString(bookData);
     }
 
-    private void deleteAllBorrowsOfAnBook(final Long bookId) {
-        List<BookBorrower> entries = bookBorrowerRepository.findAll();
-        for (BookBorrower entry : entries) {
-            if (entry.getBook().getId().equals(bookId)) {
-                bookBorrowerRepository.delete(entry);
-            }
-        }
-    }
 }

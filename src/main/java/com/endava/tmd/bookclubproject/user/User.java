@@ -1,15 +1,15 @@
 package com.endava.tmd.bookclubproject.user;
 
-import com.endava.tmd.bookclubproject.book.Book;
 import com.endava.tmd.bookclubproject.bookborrower.BookBorrower;
 import com.endava.tmd.bookclubproject.bookowner.BookOwner;
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.*;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 @SuppressWarnings("JpaDataSourceORMInspection")
 @Data
@@ -27,17 +27,23 @@ public class User {
             strategy = GenerationType.SEQUENCE,
             generator = "user_sequence"
     )
+    @Schema(description = "Unique id, auto-generated.", example = "5")
     @Id
     private Long id;
     @Column(nullable = false)
+    @Schema(description = "First name of the User", example = "Ionci")
     private String firstName;
     @Column(nullable = false)
+    @Schema(description = "Last name of the User", example = "Georgian")
     private String lastName;
     @Column(nullable = false, unique = true)
+    @Schema(description = "Username of the User", example = "ionci123")
     private String username;
     @Column(nullable = false)
+    @Schema(description = "Password of the User", example = "ionci321")
     private String password;
     @Column(nullable = false, unique = true)
+    @Schema(description = "Email of the User", example = "ionci@gmail.com")
     private String email;
 
     @JsonIgnore
@@ -45,14 +51,14 @@ public class User {
             mappedBy = "user",
             cascade = {CascadeType.PERSIST, CascadeType.MERGE}
     )
-    private Set<BookOwner> booksOwned = new HashSet<>();
+    private List<BookOwner> booksOwned = new ArrayList<>();
 
     @JsonIgnore
     @OneToMany(
             mappedBy = "borrower",
             cascade = {CascadeType.PERSIST, CascadeType.MERGE}
     )
-    private Set<BookBorrower> booksBorrowed = new HashSet<>();
+    private List<BookBorrower> booksBorrowed = new ArrayList<>();
 
     public User(final String firstName,final String lastName,final String username,final String password,final String email) {
         this.firstName = firstName;

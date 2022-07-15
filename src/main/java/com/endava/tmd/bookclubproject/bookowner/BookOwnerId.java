@@ -1,5 +1,7 @@
 package com.endava.tmd.bookclubproject.bookowner;
 
+import com.endava.tmd.bookclubproject.user.User;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -14,11 +16,13 @@ import java.io.Serializable;
 @AllArgsConstructor
 
 @Embeddable
-public class BookOwnerKey implements Serializable {
+public class BookOwnerId implements Serializable {
 
+    @Schema(description = "Id of the book held by owner.", example = "5")
     @Column(name = "book_id", nullable = false)
     private Long bookId;
 
+    @Schema(description = "Id of the user that owns the book.", example = "5")
     @Column(name = "user_id", nullable = false)
     private Long userId;
 

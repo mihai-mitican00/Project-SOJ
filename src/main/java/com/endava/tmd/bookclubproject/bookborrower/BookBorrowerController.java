@@ -1,12 +1,14 @@
 package com.endava.tmd.bookclubproject.bookborrower;
 
+import com.endava.tmd.bookclubproject.bookowner.BookOwner;
 import com.endava.tmd.bookclubproject.utilities.BooleanUtilities;
 import com.endava.tmd.bookclubproject.utilities.HttpResponseUtilities;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -16,10 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.Optional;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-
+@Tag(name = "Renting")
 @RestController
 @RequestMapping("book_borrowers")
 public class BookBorrowerController {
@@ -28,81 +27,114 @@ public class BookBorrowerController {
     private BookBorrowerService bookBorrowerService;
 
     @RequestMapping(method = RequestMethod.GET)
-    public Object getAllBookBorrowers() {
-        List<BookBorrower> listOfEntries = bookBorrowerService.getAllBookBorrowers();
-        if (listOfEntries.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        }
-        return listOfEntries;
+    @Operation(
+            summary = "Get all renting entries.",
+            description = "Get all books borrowed and their borrowers, as well as owner id, borrow date and return date.",
+            responses = {
+                    @ApiResponse(
+                            description = "See all the borrows that are currently made.",
+                            responseCode = "200",
+                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = BookBorrower.class))
+                    ),
+                    @ApiResponse(
+                            description = "There are no borrows made yet.",
+                            responseCode = "204",
+                            content = @Content
+                    )
+            }
+    )
+    public ResponseEntity<List<BookBorrower>> getAllBookBorrowers() {
+        return bookBorrowerService.getAllBookBorrowers();
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/BooksUserGave")
-    public ResponseEntity<String> getBooksThatUserGave(@RequestParam("userId") final Optional<Long> userId) {
-        if (userId.isEmpty()) {
-            return HttpResponseUtilities.wrongParameters();
-        }
-        List<BookBorrower> borrowerList = bookBorrowerService.getBooksThatUserGave(userId.get());
-
-        if (borrowerList.isEmpty()) {
-            return HttpResponseUtilities.noContentFound();
-        }
-
-        StringBuilder message = new StringBuilder();
-        borrowerList.forEach(bookBorrower ->
-                message.append(bookBorrower.toStringBorrowerFocused())
-                        .append("\n------------------------------\n"));
-
-        return HttpResponseUtilities.operationWasDone(message.toString());
+    @Operation(
+            summary = "Get all books that user gave.",
+            description = "See all the books that give user gave to borrowers, and the date when he will get them back.",
+            responses = {
+                    @ApiResponse(
+                            description = "See all the books the user gave.",
+                            responseCode = "200",
+                            content = @Content
+                    ),
+                    @ApiResponse(
+                            description = "This user gave no books yet.",
+                            responseCode = "204",
+                            content = @Content
+                    )
+            }
+    )
+    public ResponseEntity<String> getBooksThatUserGave(@RequestParam("ownerId") final Long ownerId) {
+        return bookBorrowerService.getBooksThatUserGave(ownerId);
     }
 
     @RequestMapping(method = RequestMethod.GET, value = "/BooksUserRented")
-    public ResponseEntity<String> getBooksThatUserRented(@RequestParam("borrowerId") final Optional<Long> borrowerId) {
-
-        if (borrowerId.isEmpty()) {
-            return HttpResponseUtilities.wrongParameters();
-        }
-        List<BookBorrower> borrowerList = bookBorrowerService.getBooksThatUserRented(borrowerId.get());
-        if (BooleanUtilities.emptyList(borrowerList)) {
-            return HttpResponseUtilities.noContentFound();
-        }
-
-        StringBuilder message = new StringBuilder();
-        borrowerList.forEach(bookBorrower ->
-                message.append(bookBorrower.toStringOwnerFocused())
-                        .append("\n------------------------------\n"));
-
-        return HttpResponseUtilities.operationWasDone(message.toString());
+    @Operation(
+            summary = "Get all books that user rented.",
+            description = "See all the books that give user rented from owners, and the date when he will return them back.",
+            responses = {
+                    @ApiResponse(
+                            description = "See all the books the user rented.",
+                            responseCode = "200",
+                            content = @Content
+                    ),
+                    @ApiResponse(
+                            description = "This user rented no books yet.",
+                            responseCode = "204",
+                            content = @Content
+                    )
+            }
+    )
+    public ResponseEntity<String> getBooksThatUserRented(@RequestParam("borrowerId") final Long borrowerId) {
+        return bookBorrowerService.getBooksThatUserRented(borrowerId);
     }
 
-
-    @RequestMapping(method = RequestMethod.PUT)
-    public ResponseEntity<String> extendRentingPeriod(@RequestParam("bookId") final Optional<Long> bookId,
-                                                      @RequestParam("borrowerId") final Optional<Long> borrowerId) {
-        if (BooleanUtilities.anyEmptyParameters(bookId, borrowerId)) {
-            return HttpResponseUtilities.wrongParameters();
-        }
-
-        return bookBorrowerService.extendRentingPeriod(bookId.orElse(0L), borrowerId.orElse(0L));
-    }
 
     @RequestMapping(method = RequestMethod.POST)
-    public ResponseEntity<String> borrowBookFromOwner(@RequestParam("bookId") final Optional<Long> bookId,
-                                                      @RequestParam("borrowerId") final Optional<Long> borrowerId,
-                                                      @RequestParam("ownerId") final Optional<Long> ownerId,
-                                                      @RequestParam("weeks") final Optional<Long> weeksToRent
+    @Operation(
+            summary = "Rent a book.",
+            description = "Rent a book from owner, for a certain period 1-4 weeks.",
+            responses = {
+                    @ApiResponse(
+                            description = "Book rented successfully.",
+                            responseCode = "201",
+                            content = @Content
+                    ),
+                    @ApiResponse(
+                            description = "Borrow cannot be done from various reasons.",
+                            responseCode = "400",
+                            content = @Content
+                    )
+            }
+    )
+    public ResponseEntity<String> borrowBookFromOwner(@RequestParam("bookId") final Long bookId,
+                                                      @RequestParam("borrowerId") final Long borrowerId,
+                                                      @RequestParam("ownerId") final Long ownerId,
+                                                      @RequestParam("weeks") final Long weeksToRent
     ) {
-        if (BooleanUtilities.anyEmptyParameters(bookId, borrowerId, ownerId, weeksToRent)
-                || (weeksToRent.orElse(0L) < 1 || weeksToRent.orElse(5L) > 4)) {
-            return HttpResponseUtilities.wrongParameters();
-        }
+        return bookBorrowerService.borrowBookFromOwner(bookId, borrowerId, ownerId, weeksToRent);
+    }
 
-        return bookBorrowerService
-                .borrowBookFromOwner(
-                        bookId.orElse(0L),
-                        borrowerId.orElse(0L),
-                        ownerId.orElse(0L),
-                        weeksToRent.get()
-                );
+    @RequestMapping(method = RequestMethod.PUT)
+    @Operation(
+            summary = "Extend a rent.",
+            description = "Extend the return date of a rent, with one week, until the renting period reaches a maximum of 5 weeks.",
+            responses = {
+                    @ApiResponse(
+                            description = "Book return date extended successfully.",
+                            responseCode = "200",
+                            content = @Content
+                    ),
+                    @ApiResponse(
+                            description = "Return date extend failed.",
+                            responseCode = "400",
+                            content = @Content
+                    )
+            }
+    )
+    public ResponseEntity<String> extendRentingPeriod(@RequestParam("bookId") final Long bookId,
+                                                      @RequestParam("borrowerId") final Long borrowerId) {
+        return bookBorrowerService.extendRentingPeriod(bookId, borrowerId);
     }
 
 }

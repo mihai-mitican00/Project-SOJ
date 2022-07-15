@@ -1,8 +1,6 @@
 package com.endava.tmd.bookclubproject.book;
 
-import com.endava.tmd.bookclubproject.bookborrower.BookBorrower;
 import com.endava.tmd.bookclubproject.bookborrower.BookBorrowerRepository;
-import com.endava.tmd.bookclubproject.bookowner.BookOwner;
 import com.endava.tmd.bookclubproject.bookowner.BookOwnerRepository;
 import com.endava.tmd.bookclubproject.user.User;
 import com.endava.tmd.bookclubproject.utilities.BooleanUtilities;
@@ -12,10 +10,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class BookService {
@@ -29,32 +25,24 @@ public class BookService {
     @Autowired
     private BookBorrowerRepository bookBorrowerRepository;
 
-    public List<Book> getBooks() {
-        return bookRepository.findAll();
+    public ResponseEntity<List<Book>>getAllBooks() {
+        List<Book> books = bookRepository.findAll();
+        if (BooleanUtilities.emptyList(books)) {
+            return HttpResponseUtilities.noContentFound();
+        }
+        return HttpResponseUtilities.operationSuccess(books);
     }
 
     public ResponseEntity<String> allBooksByTitleOrAuthor(final Optional<String> title, final Optional<String> author) {
 
-        if (title.isEmpty() || author.isEmpty()) {
-            return HttpResponseUtilities.wrongParameters();
-        }
-
-        List<Book> booksByTitleOrAuthor = bookOwnerRepository
-                .findAll()
-                .stream()
-                .map(BookOwner::getBook)
-                .filter(book -> (book.getTitle().equals(title.get()) ||
-                        book.getAuthor().equals(author.get())))
-                .toList();
-
-
+        List<Book> booksByTitleOrAuthor = bookRepository.findBooksByTitleOrAuthor(title, author);
         if (BooleanUtilities.emptyList(booksByTitleOrAuthor)) {
             return HttpResponseUtilities.noContentFound();
         }
 
-        List<BookBorrower> entriesList = bookBorrowerRepository.findAll();
-        List<Book> borrowedBooks = entriesList.stream().map(BookBorrower::getBook).collect(Collectors.toList());
-        List<LocalDate> returnDates = entriesList.stream().map(BookBorrower::getReturnDate).toList();
+        List<Book> borrowedBooks = bookBorrowerRepository.findAllBorrowedBooks();
+        List<LocalDate> returnDates = bookBorrowerRepository.findAllReturnDates();
+
 
         StringBuilder message = new StringBuilder();
         int i = 0;
@@ -69,46 +57,29 @@ public class BookService {
             i++;
         }
 
-        return HttpResponseUtilities.operationWasDone(message.toString());
+        return HttpResponseUtilities.operationSuccess(message.toString());
     }
 
-    public List<Book> getAllAvailableBooks() {
-        List<Book> ownedBooks =
-                bookOwnerRepository
-                        .findAll()
-                        .stream()
-                        .map(BookOwner::getBook)
-                        .toList();
+    public ResponseEntity<String> getAllAvailableBooks() {
+        List<Book> availableBooks = bookRepository.findAvailableBooks();
 
-
-        List<Book> borrowedBooks =
-                bookBorrowerRepository
-                        .findAll()
-                        .stream()
-                        .map(BookBorrower::getBook)
-                        .toList();
-
-        List<Book> availableBooks = new ArrayList<>();
-
-        for (Book book : ownedBooks) {
-            long ownedBookCount = ownedBooks.stream().filter(b -> b.equals(book)).count();
-            long borrowedBookCount = borrowedBooks.stream().filter(b -> b.equals(book)).count();
-
-            if (ownedBookCount > borrowedBookCount && !availableBooks.contains(book)) {
-                availableBooks.add(book);
-            }
+        if (BooleanUtilities.emptyList(availableBooks)) {
+            return HttpResponseUtilities.noContentFound();
         }
-
-        return availableBooks;
+        StringBuilder message = new StringBuilder();
+        availableBooks.forEach(
+                book -> message
+                        .append(book.toString())
+                        .append("\n-----------------------------\n")
+        );
+        return HttpResponseUtilities.operationSuccess(message.toString());
     }
 
-    public List<User> getBookOwners(Long bookId) {
-        List<BookOwner> bookOwnerEntries = bookOwnerRepository.findAll();
-        Book book = bookRepository.findById(bookId).orElse(null);
-
-        return bookOwnerEntries.stream()
-                .filter(bo -> bo.getBook().equals(book))
-                .map(BookOwner::getUser)
-                .toList();
+    public ResponseEntity<List<User>> getBookOwnersOfBook(final Long bookId) {
+        List<User> bookOwners = bookOwnerRepository.findOwnersOfBook(bookId);
+        if (BooleanUtilities.emptyList(bookOwners)) {
+            return HttpResponseUtilities.noContentFound();
+        }
+        return HttpResponseUtilities.operationSuccess(bookOwners);
     }
 }

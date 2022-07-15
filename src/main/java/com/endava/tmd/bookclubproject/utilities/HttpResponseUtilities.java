@@ -5,27 +5,27 @@ import org.springframework.http.ResponseEntity;
 
 public interface HttpResponseUtilities {
 
-    static ResponseEntity<String> wrongParameters(){
-        return new ResponseEntity<>("Parameters introduced are wrong!", HttpStatus.NOT_ACCEPTABLE);
-    }
-
-    static ResponseEntity<String> noContentFound(){
+    static <T> ResponseEntity<T> noContentFound(){
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
-    static ResponseEntity<String> operationWasDone(final String body){
-        return ResponseEntity.ok(body);
+    static <T> ResponseEntity<T> operationSuccess(final T body){
+        return new ResponseEntity<>(body, HttpStatus.OK);
     }
 
-    static ResponseEntity<String> insertDone(final String body){
+    static <T> ResponseEntity<T> insertSuccess(final T body){
         return new ResponseEntity<>(body, HttpStatus.CREATED);
     }
 
-    static ResponseEntity<String> dataConflict(final String body){
+    static <T> ResponseEntity<T> dataConflict(final T body){
         return new ResponseEntity<>(body, HttpStatus.CONFLICT);
     }
 
-    static ResponseEntity<String> notAcceptable(final String body){
+    static <T> ResponseEntity<T> notAcceptable(final T body){
         return new ResponseEntity<>(body, HttpStatus.NOT_ACCEPTABLE);
+    }
+
+    static <T> ResponseEntity<T> badRequest(final T body){
+        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
 }

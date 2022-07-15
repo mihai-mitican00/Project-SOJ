@@ -4,12 +4,18 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface BookRepository extends JpaRepository <Book, Long> {
+public interface BookRepository extends JpaRepository<Book, Long> {
+    Optional<Book> findByTitleAndAuthorAndEdition(final String title, final String author, final String edition);
 
-    @Query("SELECT b FROM Book b WHERE b.title = ?1 AND b.author = ?2 AND b.edition = ?3")
-    Optional<Book> findBooksByAllFields(final String title , final String author, final String edition);
+    @Query("SELECT bo.book FROM BookOwner bo WHERE bo.book NOT IN " +
+            "(SELECT bb.book FROM BookBorrower bb WHERE bb.ownerId = bo.user.id)")
+    List<Book> findAvailableBooks();
+
+    @Query(value = "SELECT bo.book FROM  BookOwner bo WHERE bo.book.title = ?1 OR bo.book.author = ?2")
+    List<Book> findBooksByTitleOrAuthor(final Optional<String> title, final Optional<String> author);
 
 }
