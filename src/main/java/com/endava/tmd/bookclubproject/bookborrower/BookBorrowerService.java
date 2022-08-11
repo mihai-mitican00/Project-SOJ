@@ -4,19 +4,16 @@ import com.endava.tmd.bookclubproject.book.Book;
 import com.endava.tmd.bookclubproject.book.BookRepository;
 import com.endava.tmd.bookclubproject.bookowner.BookOwner;
 import com.endava.tmd.bookclubproject.bookowner.BookOwnerRepository;
+import com.endava.tmd.bookclubproject.exception.ApiBadRequestException;
 import com.endava.tmd.bookclubproject.user.User;
 import com.endava.tmd.bookclubproject.user.UserRepository;
-import com.endava.tmd.bookclubproject.utilities.BooleanUtilities;
-import com.endava.tmd.bookclubproject.utilities.HttpResponseUtilities;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
-import static com.endava.tmd.bookclubproject.utilities.HttpResponseUtilities.*;
 import static java.time.temporal.ChronoUnit.WEEKS;
 
 @Service
@@ -34,88 +31,77 @@ public class BookBorrowerService {
     @Autowired
     private UserRepository userRepository;
 
-    public ResponseEntity<List<BookBorrower>> getAllBookBorrowers() {
-        List<BookBorrower> listOfEntries = bookBorrowerRepository.findAll();
-        if (BooleanUtilities.emptyList(listOfEntries)) {
-            return HttpResponseUtilities.noContentFound();
-        }
-        return HttpResponseUtilities.operationSuccess(listOfEntries);
-
+    public List<BookBorrower> getAllBookBorrowers() {
+        return bookBorrowerRepository.findAll();
     }
 
-    public ResponseEntity<String> getBooksThatUserGave(final Long ownerId) {
-        List<BookBorrower> borrowerList = bookBorrowerRepository.findAllByOwnerId(ownerId);
-        if (borrowerList.isEmpty()) {
-            return HttpResponseUtilities.noContentFound();
-        }
-
-        StringBuilder message = new StringBuilder();
-        borrowerList.forEach(bookBorrower ->
-                message.append(bookBorrower.toStringBorrowerFocused())
-                        .append("\n------------------------------\n"));
-
-        return HttpResponseUtilities.operationSuccess(message.toString());
+    public List<BookBorrower> getBooksThatUserGave(final Long ownerId) {
+        return bookBorrowerRepository.findAllByOwnerId(ownerId);
     }
 
-    public ResponseEntity<String> getBooksThatUserRented(final Long borrowerId) {
-        List<BookBorrower> borrowerList = bookBorrowerRepository.findAllByBorrowerId(borrowerId);
-        if (BooleanUtilities.emptyList(borrowerList)) {
-            return HttpResponseUtilities.noContentFound();
-        }
-
-        StringBuilder message = new StringBuilder();
-        borrowerList.forEach(bookBorrower ->
-                message.append(bookBorrower.toStringOwnerFocused())
-                        .append("\n------------------------------\n"));
-
-        return HttpResponseUtilities.operationSuccess(message.toString());
+    public List<BookBorrower> getBooksThatUserRented(final Long borrowerId) {
+        return bookBorrowerRepository.findAllByBorrowerId(borrowerId);
     }
 
-    public ResponseEntity<String> borrowBookFromOwner(final Long bookId, final Long borrowerId, final Long ownerId, final Long weeks) {
-
-        if (!isDataValid(bookId, borrowerId, ownerId, weeks)) {
-            return badRequest("Data introduced for borrow is not valid, the borrow cannot be done.");
-        } else if (!isBookOwnedBy(bookId, ownerId)) {
-            return badRequest("The book does not belong to given owner.");
-        } else if (isBookOfOwnerAlreadyBorrowed(bookId, ownerId)) {
-            return badRequest("The given book is already borrowed at the moment.");
-        } else if (hasBorrowerAlreadyRentTheBook(bookId, borrowerId)) {
-            return badRequest("Given borrower has already rented this book.");
-        } else if (isBookOwnedBy(bookId, borrowerId)) {
-            return badRequest("The user cannot rent a book that himself owns.");
-        }
-
+    public void borrowBookFromOwner(final Long bookId, final Long borrowerId, final Long ownerId, final Long weeks) {
+        checkIfRentable(bookId, borrowerId, ownerId, weeks);
         Book book = bookRepository.findById(bookId).orElse(new Book());
         User borrower = userRepository.findById(borrowerId).orElse(new User());
         BookBorrower bookBorrower = new BookBorrower(book, borrower, ownerId, weeks);
-
         bookBorrowerRepository.save(bookBorrower);
-        return insertSuccess
-                ("Book with id " + book.getId()
-                        + " was borrowed by user with id " + borrower.getId()
-                        + " for " + weeks + " weeks");
     }
 
-    public ResponseEntity<String> extendRentingPeriod(final Long bookId, final Long borrowerId) {
-        Optional<BookBorrower> bookBorrowerOptional = bookBorrowerRepository
-                .findByBookIdAndBorrowerId(bookId, borrowerId);
+    public void extendRentingPeriod(final Long bookId, final Long borrowerId) {
+        Optional<BookBorrower> bookBorrowerOptional = bookBorrowerRepository.findByBookIdAndBorrowerId(bookId, borrowerId);
+        checkIfExtendable(bookBorrowerOptional);
+        BookBorrower bookBorrower = bookBorrowerOptional.orElse(new BookBorrower());
+        LocalDate returnDate = bookBorrower.getReturnDate();
+        bookBorrower.setReturnDate(returnDate.plusWeeks(1));
+        bookBorrowerRepository.save(bookBorrower);
+    }
 
-        if (bookBorrowerOptional.isEmpty()) {
-            return badRequest("The borrow with given id's does not exist.");
+    public String formatBooksThatUserGave(List<BookBorrower> ownersList) {
+        StringBuilder message = new StringBuilder();
+        ownersList.forEach(bookBorrower ->
+                message.append(bookBorrower.toStringBorrowerFocused())
+                        .append("\n------------------------------\n"));
+        return message.toString();
+    }
+
+    public String formatBooksThatUserRented(List<BookBorrower> borrowersList) {
+        StringBuilder message = new StringBuilder();
+        borrowersList.forEach(bookBorrower ->
+                message.append(bookBorrower.toStringOwnerFocused())
+                        .append("\n------------------------------\n"));
+        return message.toString();
+    }
+
+    private void checkIfRentable(final Long bookId, final Long borrowerId, final Long ownerId, final Long weeks) {
+        if (!isDataValid(bookId, borrowerId, ownerId, weeks)) {
+            throw new ApiBadRequestException("Data introduced for borrow is not valid, the borrow cannot be done.");
+        } else if (!isBookOwnedBy(bookId, ownerId)) {
+            throw new ApiBadRequestException("The book does not belong to given owner.");
+        } else if (isBookOfOwnerAlreadyBorrowed(bookId, ownerId)) {
+            throw new ApiBadRequestException("The given book is already borrowed at the moment.");
+        } else if (hasBorrowerAlreadyRentTheBook(bookId, borrowerId)) {
+            throw new ApiBadRequestException("Given borrower has already rented this book.");
+        } else if (isBookOwnedBy(bookId, borrowerId)) {
+            throw new ApiBadRequestException("The user cannot rent a book that himself owns.");
         }
+    }
 
+    private void checkIfExtendable(final Optional<BookBorrower> bookBorrowerOptional){
+        if (bookBorrowerOptional.isEmpty()) {
+            throw new ApiBadRequestException("The borrow with given id's does not exist.");
+        }
         BookBorrower bookBorrower = bookBorrowerOptional.get();
         LocalDate borrowDate = bookBorrower.getBorrowDate();
         LocalDate returnDate = bookBorrower.getReturnDate();
         LocalDate extendedReturnDate = returnDate.plusWeeks(1L);
         long weekDifference = WEEKS.between(borrowDate, extendedReturnDate);
         if (weekDifference > 5) {
-            return badRequest("This borrow return date cannot be extended anymore!");
+            throw new ApiBadRequestException("This borrow return date cannot be extended anymore!");
         }
-        bookBorrower.setReturnDate(returnDate.plusWeeks(1));
-
-        bookBorrowerRepository.save(bookBorrower);
-        return operationSuccess("Renting period was prolonged with one week");
     }
 
     private boolean isDataValid(final Long bookId, final Long borrowerId, final Long ownerId, final Long weeks) {
@@ -139,4 +125,6 @@ public class BookBorrowerService {
         Optional<BookBorrower> borrowerOptional = bookBorrowerRepository.findByBookIdAndBorrowerId(bookId, borrowerId);
         return borrowerOptional.isPresent();
     }
+
+
 }

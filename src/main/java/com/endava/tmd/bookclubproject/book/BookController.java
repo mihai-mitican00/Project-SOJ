@@ -1,8 +1,6 @@
 package com.endava.tmd.bookclubproject.book;
 
 import com.endava.tmd.bookclubproject.user.User;
-import com.endava.tmd.bookclubproject.utilities.BooleanUtilities;
-import com.endava.tmd.bookclubproject.utilities.HttpResponseUtilities;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -10,6 +8,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -17,6 +16,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Optional;
+
+import static org.hibernate.cfg.AvailableSettings.USER;
+import static org.springframework.http.ResponseEntity.noContent;
+import static org.springframework.http.ResponseEntity.ok;
 
 @Tag(name = "Book")
 @RestController
@@ -26,7 +29,8 @@ public class BookController {
     @Autowired
     private BookService bookService;
 
-    @RequestMapping(method = RequestMethod.GET)
+    @PreAuthorize("hasAuthority('book:read')")
+    @RequestMapping(method = RequestMethod.GET, value = "/AllBooks")
     @Operation(
             summary = "Get all books.",
             description = "Getting all distinct books present in the virtual shelter.",
@@ -44,9 +48,14 @@ public class BookController {
             }
     )
     public ResponseEntity<List<Book>> getAllBooks() {
-        return bookService.getAllBooks();
+        List<Book> books = bookService.getAllBooks();
+        if (books.isEmpty()) {
+            return noContent().build();
+        }
+        return ok(books);
     }
 
+    @PreAuthorize("hasAuthority('book:read')")
     @RequestMapping(method = RequestMethod.GET, value = "/AllAvailableBooks")
     @Operation(
             summary = "Get all available for renting books.",
@@ -65,9 +74,15 @@ public class BookController {
             }
     )
     public ResponseEntity<String> getAllAvailableBooks() {
-        return bookService.getAllAvailableBooks();
+        List<Book> availableBooks = bookService.getAllAvailableBooks();
+        if (availableBooks.isEmpty()) {
+            return noContent().build();
+        }
+        String message = bookService.formatAvailableBooks(availableBooks);
+        return ok(message);
     }
 
+    @PreAuthorize("hasAuthority('book:read')")
     @RequestMapping(method = RequestMethod.GET, value = "/TitleOrAuthor")
     @Operation(
             summary = "Get books by title or author.",
@@ -85,11 +100,18 @@ public class BookController {
                     )
             }
     )
-    public ResponseEntity<String> getBooksByTitleOrAuthor(@RequestParam("title") final Optional<String> title,
-                                                          @RequestParam("author") final Optional<String> author) {
-        return bookService.allBooksByTitleOrAuthor(title, author);
-    }
 
+    public ResponseEntity<String> getBooksByTitleOrAuthor(@RequestParam("title") final Optional<String> title,
+                                                          @RequestParam("author") final Optional<String> author)
+    {
+        List<Book> booksByTitleOrAuthor = bookService.allBooksByTitleOrAuthor(title, author);
+        if (booksByTitleOrAuthor.isEmpty()) {
+            return noContent().build();
+        }
+        String message = bookService.formatBooksByTitleOrAuthor(booksByTitleOrAuthor);
+        return ok(message);
+    }
+    @PreAuthorize("hasAuthority('user:read')")
     @RequestMapping(method = RequestMethod.GET, value = "/BookOwners")
     @Operation(
             summary = "Get book owners of a book.",
@@ -108,7 +130,11 @@ public class BookController {
             }
     )
     public ResponseEntity<List<User>> getBookOwnersOfBook(@RequestParam("bookId") final Long bookId) {
-        return bookService.getBookOwnersOfBook(bookId);
+        List<User> bookOwners = bookService.getBookOwnersOfBook(bookId);
+        if (bookOwners.isEmpty()) {
+            return noContent().build();
+        }
+        return ok(bookOwners);
     }
 
 }

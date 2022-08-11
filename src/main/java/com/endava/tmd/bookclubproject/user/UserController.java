@@ -1,6 +1,7 @@
 package com.endava.tmd.bookclubproject.user;
 
 import com.endava.tmd.bookclubproject.book.Book;
+import com.endava.tmd.bookclubproject.exception.ApiBadRequestException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -8,10 +9,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
+
+import static org.springframework.http.ResponseEntity.noContent;
+import static org.springframework.http.ResponseEntity.ok;
 
 @Tag(name = "User")
 @RestController
@@ -22,6 +27,7 @@ public class UserController {
     private UserService userService;
 
 
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @RequestMapping(method = RequestMethod.GET)
     @Operation(
             summary = "Get all users.",
@@ -41,10 +47,15 @@ public class UserController {
             }
     )
     public ResponseEntity<List<User>> getAllUsers() {
-        return userService.getAllUsers();
+        List<User> usersList = userService.getAllUsers();
+        if (usersList.isEmpty()) {
+            return noContent().build();
+        }
+        return ok(usersList);
     }
 
-    @RequestMapping(method = RequestMethod.GET, value = "BooksOwned")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @RequestMapping(method = RequestMethod.GET, value = "/BooksOwned")
     @Operation(
             summary = "Get books owned.",
             description = "Get all books owned by a certain user.",
@@ -63,7 +74,11 @@ public class UserController {
             }
     )
     public ResponseEntity<List<Book>> getBooksOfUser(@RequestParam("userId") final Long userId) {
-        return userService.getBooksOfUser(userId);
+        List<Book> booksOwned = userService.getBooksOfUser(userId);
+        if (booksOwned.isEmpty()) {
+            return noContent().build();
+        }
+        return ok(booksOwned);
     }
 
     @RequestMapping(method = RequestMethod.POST)
@@ -73,23 +88,19 @@ public class UserController {
             responses = {
                     @ApiResponse(
                             description = "User account created with success.",
-                            responseCode = "201",
+                            responseCode = "200",
                             content = @Content
                     ),
                     @ApiResponse(
                             description = "Username or email already used.",
                             responseCode = "400",
                             content = @Content
-                    ),
-                    @ApiResponse(
-                            description = "Details for account creation are not complete.",
-                            responseCode = "406",
-                            content = @Content
                     )
             }
     )
     public ResponseEntity<String> registerUser(@RequestBody final Optional<User> userOptional) {
-        return userService.registerUser(userOptional);
+        userService.registerUser(userOptional);
+        return ok("User account created with success!");
     }
 
     @RequestMapping(method = RequestMethod.DELETE)
@@ -103,14 +114,15 @@ public class UserController {
                             content = @Content
                     ),
                     @ApiResponse(
-                            description = "User with given id not found.",
-                            responseCode = "204",
+                            description = "User with given id does not exist.",
+                            responseCode = "400",
                             content = @Content
                     )
             }
     )
     public ResponseEntity<String> deleteUser(@RequestParam("userId") final Long userId) {
-        return userService.deleteUser(userId);
+        userService.deleteUser(userId);
+        return ok("User with id " + userId + " and all his work deleted!");
     }
 
 }

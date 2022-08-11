@@ -13,4 +13,6 @@ public interface WaitingListRepository extends JpaRepository<WaitingList, Long> 
     Optional<WaitingList> findByBookIdAndUserId(final Long bookId, final Long userId);
     @Transactional
     void deleteAllByUserId(final Long userId);
+    @Transactional
+    void deleteAllByBookId(final Long bookId);
 }
