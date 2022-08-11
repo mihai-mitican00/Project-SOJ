@@ -17,6 +17,10 @@ public interface BookOwnerRepository extends JpaRepository <BookOwner, BookOwner
 
     @Query(value = "SELECT bo.user FROM  BookOwner bo WHERE bo.book.id = ?1")
     List<User> findOwnersOfBook(final Long bookId);
+
+    @Query(value = "SELECT bo.user.id FROM  BookOwner bo WHERE bo.book.id = ?1")
+    List<Long> findOwnersIdsOfBook(final Long bookId);
+
     @Query(value = "SELECT bo.book FROM  BookOwner bo WHERE bo.user.id = ?1")
     List<Book> findBooksOfUser(final Long userId);
 
@@ -24,4 +28,8 @@ public interface BookOwnerRepository extends JpaRepository <BookOwner, BookOwner
     List<Book> findAllOwnedBooks();
 
     Optional<BookOwner> findByBookIdAndUserId(final Long bookId, final Long userId);
+
+
+    @Transactional
+    void deleteAllByUserId(final Long userId);
 }

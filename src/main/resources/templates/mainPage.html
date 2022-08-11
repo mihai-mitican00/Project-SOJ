@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TMD Book Club</title>
+</head>
+<style>
+    body {
+        background-color: coral;
+        color: aliceblue;
+    }
+</style>
+<body>
+<h>Welcome to our site!</h>
+
+<form class="form-logout" method="get" action="/logout">
+    <button class="btn btn -primary btn-block" type="submit">Logout</button>
+</form>
+
+<h>See app data</h>
+<form class="form-books" method="get" action="/users">
+    <button class="btn btn -primary btn-block" type="submit">Users</button>
+</form>
+<form class="form-books" method="get" action="/books">
+    <button class="btn btn -primary btn-block" type="submit">Books</button>
+</form>
+<form class="form-books" method="get" action="/book_owners">
+    <button class="btn btn -primary btn-block" type="submit">Books and Owners</button>
+</form>
+<form class="form-books" method="get" action="/book_borrowers">
+    <button class="btn btn -primary btn-block" type="submit">Books and Borrowers</button>
+</form>
+<form class="form-books" method="get" action="/waiting_list">
+    <button class="btn btn -primary btn-block" type="submit">Waiting List</button>
+</form>
+</body>
+</html>

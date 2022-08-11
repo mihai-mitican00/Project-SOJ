@@ -1,4 +1,4 @@
-package com.endava.tmd.bookclubproject.utilities;
+package com.endava.tmd.bookclubproject;
 
 import com.endava.tmd.bookclubproject.book.Book;
 import com.endava.tmd.bookclubproject.book.BookRepository;
@@ -18,9 +18,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import java.security.SecureRandom;
 import java.util.List;
 
+import static com.endava.tmd.bookclubproject.security.UserRoles.ADMIN;
+import static com.endava.tmd.bookclubproject.security.UserRoles.USER;
+
 @Configuration
 public class InitialConfiguration {
-
 
     @Bean
     CommandLineRunner commandLineRunner(UserRepository userRepository,
@@ -57,37 +59,47 @@ public class InitialConfiguration {
                 "Mihai",
                 "Mitican",
                 "mitican123",
-                "miti321",
-                "mitican@gmail.com"
+                "asd",
+                "mitican@endava.com",
+                ADMIN
         );
+        user1.setId(1L);
+        user1.setEnabled(true);
 
         User user2 = new User(
                 "Ionut",
                 "Pintea",
                 "ionut345",
-                "ion345",
-                "pintea@gmail.com"
+                "asd",
+                "pintea@endava.com",
+                USER
         );
+        user2.setId(2L);
+        user2.setEnabled(true);
+
 
         User user3 = new User(
                 "Andi",
                 "Moisescu",
                 "moisea32",
-                "andiandi32",
-                "moisea@gmail.com"
+                "asd",
+                "moisea@endava.com",
+                USER
         );
+        user3.setId(3L);
+        user3.setEnabled(true);
 
         User user4 = new User(
                 "Andrada",
                 "Giurgiu",
                 "andraG",
-                "dinead",
-                "andraG@gmail.com"
+                "asd",
+                "andra@endava.com",
+                USER
         );
-        user1.setId(1L);
-        user2.setId(2L);
-        user3.setId(3L);
         user4.setId(4L);
+        user4.setEnabled(true);
+
         return List.of(user1, user2, user3, user4);
     }
 
@@ -156,10 +168,12 @@ public class InitialConfiguration {
         return List.of(
                 new WaitingList(
                         initialBooks.get(1).getId(),
+                        initialUsers.get(0).getId(),
                         initialUsers.get(2).getId()
                 ),
                 new WaitingList(
                         initialBooks.get(1).getId(),
+                        initialUsers.get(0).getId(),
                         initialUsers.get(1).getId()
                 )
         );

@@ -13,6 +13,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+
+import static org.springframework.http.ResponseEntity.noContent;
+import static org.springframework.http.ResponseEntity.ok;
+
 @Tag(name = "Waiting List")
 @RestController
 @RequestMapping("waiting_list")
@@ -39,7 +43,11 @@ public class WaitingListController {
             }
     )
     public ResponseEntity<List<WaitingList>> getAllOnWaitingList() {
-        return waitingListService.getAllOnWaitingList();
+        List<WaitingList> listOfEntries = waitingListService.getAllOnWaitingList();
+        if (listOfEntries.isEmpty()) {
+            return noContent().build();
+        }
+        return ok(listOfEntries);
     }
 
     @RequestMapping(method = RequestMethod.POST)
@@ -49,7 +57,7 @@ public class WaitingListController {
             responses = {
                     @ApiResponse(
                             description = "Entry created with success",
-                            responseCode = "201",
+                            responseCode = "200",
                             content = @Content
                     ),
                     @ApiResponse(
@@ -60,9 +68,15 @@ public class WaitingListController {
             }
     )
     public ResponseEntity<String> addUserOnList(@RequestParam("bookId") final Long bookId,
+                                                @RequestParam("ownerId") final Long ownerId,
                                                 @RequestParam("userId") final Long userId) {
 
-        return waitingListService.addUserOnList(bookId, userId);
+        waitingListService.addUserOnList(bookId,ownerId, userId);
+        return ok(
+                "User with id " + userId
+                + " has added himself on waiting list for book with id " + bookId
+                +" owned by user with id " + ownerId
+        );
     }
 
 

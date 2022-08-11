@@ -1,8 +1,5 @@
 package com.endava.tmd.bookclubproject.bookborrower;
 
-import com.endava.tmd.bookclubproject.bookowner.BookOwner;
-import com.endava.tmd.bookclubproject.utilities.BooleanUtilities;
-import com.endava.tmd.bookclubproject.utilities.HttpResponseUtilities;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -10,13 +7,16 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Optional;
+
+import static org.springframework.http.ResponseEntity.noContent;
+import static org.springframework.http.ResponseEntity.ok;
 
 @Tag(name = "Renting")
 @RestController
@@ -25,7 +25,7 @@ public class BookBorrowerController {
 
     @Autowired
     private BookBorrowerService bookBorrowerService;
-
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @RequestMapping(method = RequestMethod.GET)
     @Operation(
             summary = "Get all renting entries.",
@@ -44,9 +44,14 @@ public class BookBorrowerController {
             }
     )
     public ResponseEntity<List<BookBorrower>> getAllBookBorrowers() {
-        return bookBorrowerService.getAllBookBorrowers();
+        List<BookBorrower> listOfEntries = bookBorrowerService.getAllBookBorrowers();
+        if (listOfEntries.isEmpty()) {
+            return noContent().build();
+        }
+        return ok(listOfEntries);
     }
 
+    @PreAuthorize("hasAuthority('book:read')")
     @RequestMapping(method = RequestMethod.GET, value = "/BooksUserGave")
     @Operation(
             summary = "Get all books that user gave.",
@@ -65,9 +70,15 @@ public class BookBorrowerController {
             }
     )
     public ResponseEntity<String> getBooksThatUserGave(@RequestParam("ownerId") final Long ownerId) {
-        return bookBorrowerService.getBooksThatUserGave(ownerId);
+        List<BookBorrower> ownersList = bookBorrowerService.getBooksThatUserGave(ownerId);
+        if (ownersList.isEmpty()) {
+            return noContent().build();
+        }
+        String message = bookBorrowerService.formatBooksThatUserGave(ownersList);
+        return ok(message);
     }
 
+    @PreAuthorize("hasAuthority('book:read')")
     @RequestMapping(method = RequestMethod.GET, value = "/BooksUserRented")
     @Operation(
             summary = "Get all books that user rented.",
@@ -86,9 +97,13 @@ public class BookBorrowerController {
             }
     )
     public ResponseEntity<String> getBooksThatUserRented(@RequestParam("borrowerId") final Long borrowerId) {
-        return bookBorrowerService.getBooksThatUserRented(borrowerId);
+        List<BookBorrower> borrowersList = bookBorrowerService.getBooksThatUserRented(borrowerId);
+        if (borrowersList.isEmpty()) {
+            return noContent().build();
+        }
+        String message = bookBorrowerService.formatBooksThatUserRented(borrowersList);
+        return ok(message);
     }
-
 
     @RequestMapping(method = RequestMethod.POST)
     @Operation(
@@ -97,7 +112,7 @@ public class BookBorrowerController {
             responses = {
                     @ApiResponse(
                             description = "Book rented successfully.",
-                            responseCode = "201",
+                            responseCode = "200",
                             content = @Content
                     ),
                     @ApiResponse(
@@ -107,14 +122,20 @@ public class BookBorrowerController {
                     )
             }
     )
+
+    @PreAuthorize("hasAuthority('book:rent')")
     public ResponseEntity<String> borrowBookFromOwner(@RequestParam("bookId") final Long bookId,
                                                       @RequestParam("borrowerId") final Long borrowerId,
                                                       @RequestParam("ownerId") final Long ownerId,
-                                                      @RequestParam("weeks") final Long weeksToRent
-    ) {
-        return bookBorrowerService.borrowBookFromOwner(bookId, borrowerId, ownerId, weeksToRent);
+                                                      @RequestParam("weeks") final Long weeksToRent)
+    {
+        bookBorrowerService.borrowBookFromOwner(bookId, borrowerId, ownerId, weeksToRent);
+        return ok( "Book with id " + bookId
+                        + " was borrowed by user with id " + borrowerId
+                        + " for " + weeksToRent + " weeks");
     }
 
+    @PreAuthorize("hasAuthority('book:rent')")
     @RequestMapping(method = RequestMethod.PUT)
     @Operation(
             summary = "Extend a rent.",
@@ -134,7 +155,8 @@ public class BookBorrowerController {
     )
     public ResponseEntity<String> extendRentingPeriod(@RequestParam("bookId") final Long bookId,
                                                       @RequestParam("borrowerId") final Long borrowerId) {
-        return bookBorrowerService.extendRentingPeriod(bookId, borrowerId);
+        bookBorrowerService.extendRentingPeriod(bookId, borrowerId);
+        return ok("Return date for book with id " + bookId + " was extended for one more week.");
     }
 
 }

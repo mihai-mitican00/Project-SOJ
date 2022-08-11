@@ -31,12 +31,17 @@ public class WaitingList {
     @Column(name = "book_id", nullable = false)
     private Long bookId;
 
+    @Schema(description = "owner id", example = "1")
+    @Column(name = "owner_id", nullable = false)
+    private Long ownerId;
+
     @Schema(description = "User id", example = "3")
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    public WaitingList(final Long bookId, final Long userId){
+    public WaitingList(final Long bookId, final Long ownerId, final Long userId){
         this.bookId = bookId;
+        this.ownerId = ownerId;
         this.userId = userId;
     }
 }

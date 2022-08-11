@@ -1,8 +1,6 @@
 package com.endava.tmd.bookclubproject.bookowner;
 
 import com.endava.tmd.bookclubproject.book.Book;
-import com.endava.tmd.bookclubproject.utilities.BooleanUtilities;
-import com.endava.tmd.bookclubproject.utilities.HttpResponseUtilities;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -10,10 +8,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
+
+import static org.springframework.http.ResponseEntity.noContent;
+import static org.springframework.http.ResponseEntity.ok;
 
 @Tag(name = "Owners")
 @RestController
@@ -23,6 +25,7 @@ public class BookOwnerController {
     @Autowired
     private BookOwnerService bookOwnerService;
 
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     @RequestMapping(method = RequestMethod.GET)
     @Operation(
             summary = "Get all Book Owner entries.",
@@ -41,9 +44,14 @@ public class BookOwnerController {
             }
     )
     public ResponseEntity<List<BookOwner>> getAllBookOwners() {
-        return bookOwnerService.getAllBookOwners();
+        List<BookOwner> bookOwners = bookOwnerService.getAllBookOwners();
+        if (bookOwners.isEmpty()) {
+            return noContent().build();
+        }
+        return ok(bookOwners);
     }
 
+    @PreAuthorize("hasAuthority('book:write')")
     @RequestMapping(method = RequestMethod.POST)
     @Operation(
             summary = "Add book as user.",
@@ -51,7 +59,7 @@ public class BookOwnerController {
             responses = {
                     @ApiResponse(
                             description = "Add a book with success.",
-                            responseCode = "201",
+                            responseCode = "200",
                             content = @Content
                     ),
                     @ApiResponse(
@@ -62,7 +70,8 @@ public class BookOwnerController {
             }
     )
     public ResponseEntity<String> addBookByUserId(@RequestParam("userId") final Long userId, @RequestBody final Optional<Book> bookOptional) {
-        return bookOwnerService.addBookByUserId(userId, bookOptional);
+        bookOwnerService.addBookByUserId(userId, bookOptional);
+        return ok("Book \"" + bookOptional.orElse(new Book()).getTitle() + "\" was added by user with id " + userId);
     }
 
     @RequestMapping(method = RequestMethod.DELETE)
@@ -86,7 +95,8 @@ public class BookOwnerController {
     )
     public ResponseEntity<String> removeBookOwnerEntry(@RequestParam("bookId") final Long bookId,
                                                        @RequestParam("userId") final Long userId) {
-        return bookOwnerService.deleteBookFromUser(bookId, userId);
+        bookOwnerService.deleteBookFromUser(bookId, userId);
+        return ok("Owner with user id " + userId + " deleted book with id " + bookId + " with success!");
     }
 
 }
