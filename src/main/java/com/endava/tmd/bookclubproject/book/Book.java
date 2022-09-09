@@ -2,13 +2,16 @@ package com.endava.tmd.bookclubproject.book;
 
 import com.endava.tmd.bookclubproject.bookborrower.BookBorrower;
 import com.endava.tmd.bookclubproject.bookowner.BookOwner;
+import com.endava.tmd.bookclubproject.user.User;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
+import org.hibernate.annotations.Fetch;
 
 import javax.persistence.*;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @SuppressWarnings("JpaDataSourceORMInspection")
 @Data

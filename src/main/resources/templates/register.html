@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TMD Book Club</title>
+</head>
+<style>
+  body {
+    background-color: coral;
+    color: aliceblue;
+  }
+
+  h1{
+    font-size: 50px;
+  }
+</style>
+<body>
+
+<form method="get" action="/register/confirm">
+  <p>
+    <label for="first-name" class="sr-only">Username</label><br>
+    <input
+            type="text"
+            id="first-name"
+            name="first-name"
+            class="form-control"
+            placeholder="First name"
+            required="required"
+            min="3" max="20">
+  </p>
+
+  <p>
+    <label for="last-name" class="sr-only">Password</label><br>
+    <input type="text"
+           id="last-name"
+           name= "last-name"
+           class="form-control"
+           placeholder="Last name"
+           required="required"
+           min="3" max="20">
+  </p>
+
+  <p>
+    <label for="username" class="sr-only">Username</label><br>
+    <input type="text"
+           id="username"
+           name="username"
+           class="form-control"
+           placeholder="Username"
+           required="required"
+           min="3" max="20">
+  </p>
+
+  <p>
+    <label for="password" class="sr-only">Password</label><br>
+    <input type="password"
+           id="password"
+           name="password"
+           class="form-control"
+           placeholder="Password"
+           required="required">
+  </p>
+
+  <p>
+    <label for="email" class="sr-only">Username</label><br>
+    <input type="text"
+           id="email"
+           name="email"
+           class="form-control"
+           placeholder="Email"
+           required="required"
+           min="3" max="20">
+  </p>
+
+  <button type="submit" onclick="showEmailWasSent()">Sign up</button>
+
+  <p id="emailMessage" style="display: none;">Confirmation email was sent!</p>
+</form>
+
+<script>
+  function showEmailWasSent(){
+    document.getElementById("emailMessage").style.display = "block";
+  }
+</script>
+</body>
+</html>

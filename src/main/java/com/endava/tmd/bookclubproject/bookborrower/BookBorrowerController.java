@@ -1,13 +1,16 @@
 package com.endava.tmd.bookclubproject.bookborrower;
 
+import com.endava.tmd.bookclubproject.user.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -25,8 +28,7 @@ public class BookBorrowerController {
 
     @Autowired
     private BookBorrowerService bookBorrowerService;
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @RequestMapping(method = RequestMethod.GET)
+
     @Operation(
             summary = "Get all renting entries.",
             description = "Get all books borrowed and their borrowers, as well as owner id, borrow date and return date.",
@@ -43,6 +45,8 @@ public class BookBorrowerController {
                     )
             }
     )
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @RequestMapping(method = RequestMethod.GET)
     public ResponseEntity<List<BookBorrower>> getAllBookBorrowers() {
         List<BookBorrower> listOfEntries = bookBorrowerService.getAllBookBorrowers();
         if (listOfEntries.isEmpty()) {
@@ -51,8 +55,7 @@ public class BookBorrowerController {
         return ok(listOfEntries);
     }
 
-    @PreAuthorize("hasAuthority('book:read')")
-    @RequestMapping(method = RequestMethod.GET, value = "/BooksUserGave")
+
     @Operation(
             summary = "Get all books that user gave.",
             description = "See all the books that give user gave to borrowers, and the date when he will get them back.",
@@ -69,17 +72,18 @@ public class BookBorrowerController {
                     )
             }
     )
+    @PreAuthorize("hasAuthority('book:read')")
+    @RequestMapping(method = RequestMethod.GET, value = "/BooksUserGave")
     public ResponseEntity<String> getBooksThatUserGave(@RequestParam("ownerId") final Long ownerId) {
-        List<BookBorrower> ownersList = bookBorrowerService.getBooksThatUserGave(ownerId);
-        if (ownersList.isEmpty()) {
+        List<BookBorrower> borrowsList = bookBorrowerService.getBorrowsWhereUserGave(ownerId);
+        if (borrowsList.isEmpty()) {
             return noContent().build();
         }
-        String message = bookBorrowerService.formatBooksThatUserGave(ownersList);
+        String message = bookBorrowerService.formatBooksThatUserGave(borrowsList);
         return ok(message);
     }
 
-    @PreAuthorize("hasAuthority('book:read')")
-    @RequestMapping(method = RequestMethod.GET, value = "/BooksUserRented")
+
     @Operation(
             summary = "Get all books that user rented.",
             description = "See all the books that give user rented from owners, and the date when he will return them back.",
@@ -96,23 +100,24 @@ public class BookBorrowerController {
                     )
             }
     )
+    @PreAuthorize("hasAuthority('book:read')")
+    @RequestMapping(method = RequestMethod.GET, value = "/BooksUserRented")
     public ResponseEntity<String> getBooksThatUserRented(@RequestParam("borrowerId") final Long borrowerId) {
-        List<BookBorrower> borrowersList = bookBorrowerService.getBooksThatUserRented(borrowerId);
+        List<BookBorrower> borrowersList = bookBorrowerService.getBorrowsWhereUserReceived(borrowerId);
         if (borrowersList.isEmpty()) {
             return noContent().build();
         }
-        String message = bookBorrowerService.formatBooksThatUserRented(borrowersList);
+        String message = bookBorrowerService.formatBooksThatUserReceived(borrowersList);
         return ok(message);
     }
 
-    @RequestMapping(method = RequestMethod.POST)
     @Operation(
             summary = "Rent a book.",
             description = "Rent a book from owner, for a certain period 1-4 weeks.",
             responses = {
                     @ApiResponse(
                             description = "Book rented successfully.",
-                            responseCode = "200",
+                            responseCode = "201",
                             content = @Content
                     ),
                     @ApiResponse(
@@ -122,21 +127,20 @@ public class BookBorrowerController {
                     )
             }
     )
-
     @PreAuthorize("hasAuthority('book:rent')")
-    public ResponseEntity<String> borrowBookFromOwner(@RequestParam("bookId") final Long bookId,
-                                                      @RequestParam("borrowerId") final Long borrowerId,
+    @RequestMapping(method = RequestMethod.POST)
+    public ResponseEntity<String> borrowBookFromOwner(@AuthenticationPrincipal final User authenticatedUser,
+                                                      @RequestParam("bookId") final Long bookId,
                                                       @RequestParam("ownerId") final Long ownerId,
-                                                      @RequestParam("weeks") final Long weeksToRent)
-    {
-        bookBorrowerService.borrowBookFromOwner(bookId, borrowerId, ownerId, weeksToRent);
-        return ok( "Book with id " + bookId
-                        + " was borrowed by user with id " + borrowerId
-                        + " for " + weeksToRent + " weeks");
+                                                      @RequestParam("weeks") final Long weeksToRent
+    ) {
+        Long borrowerId = authenticatedUser.getId();
+        String message = bookBorrowerService.borrowBookFromOwner(bookId, borrowerId, ownerId, weeksToRent);
+
+        return new ResponseEntity<>(message, HttpStatus.CREATED);
     }
 
-    @PreAuthorize("hasAuthority('book:rent')")
-    @RequestMapping(method = RequestMethod.PUT)
+
     @Operation(
             summary = "Extend a rent.",
             description = "Extend the return date of a rent, with one week, until the renting period reaches a maximum of 5 weeks.",
@@ -153,10 +157,13 @@ public class BookBorrowerController {
                     )
             }
     )
-    public ResponseEntity<String> extendRentingPeriod(@RequestParam("bookId") final Long bookId,
-                                                      @RequestParam("borrowerId") final Long borrowerId) {
-        bookBorrowerService.extendRentingPeriod(bookId, borrowerId);
-        return ok("Return date for book with id " + bookId + " was extended for one more week.");
+    @PreAuthorize("hasAuthority('book:rent')")
+    @RequestMapping(method = RequestMethod.PUT)
+    public ResponseEntity<String> extendRentingPeriod(@AuthenticationPrincipal final User authenticatedUser,
+                                                      @RequestParam("bookId") final Long bookId) {
+        Long borrowerId = authenticatedUser.getId();
+        String message = bookBorrowerService.extendRentingPeriod(bookId, borrowerId);
+        return ok(message);
     }
 
 }

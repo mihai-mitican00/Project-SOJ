@@ -24,7 +24,6 @@ public class WaitingListService {
     @Autowired
     private WaitingListRepository waitingListRepository;
 
-
     @Autowired
     private UserRepository userRepository;
 
@@ -49,7 +48,7 @@ public class WaitingListService {
             throw new ApiBadRequestException("Invalid data, some objects do not exist.");
         }
 
-        if(isBookNotBorrowed(bookId, ownerId)){
+        if (isBookNotBorrowed(bookId, ownerId)) {
             throw new ApiBadRequestException("You cannot add yourself on the waiting list for a book that is not already rented!");
         }
 
@@ -58,11 +57,16 @@ public class WaitingListService {
         }
 
         if (bookAlreadyBorrowedByThisUser(bookId, userId)) {
-            throw new ApiBadRequestException("User having id " + userId + " is already renting book with id " + bookId);
+            String errorMessage = String.format("User having id %d is already renting book with id %d", userId, bookId);
+            throw new ApiBadRequestException(errorMessage);
         }
 
         if (entryAlreadyPresent(bookId, userId)) {
-            throw new ApiBadRequestException("User with id " + userId + " already added himself on waiting list for book with id " + bookId);
+            String errorMessage = String.format(
+                    "User with id %d already added himself on waiting list for book with id %d",
+                    userId,
+                    bookId);
+            throw new ApiBadRequestException(errorMessage);
         }
 
     }
@@ -85,12 +89,12 @@ public class WaitingListService {
         return bookBorrowerOptional.isEmpty();
     }
 
-    private boolean bookAlreadyBorrowedByThisUser(final Long bookId,  final Long userId) {
+    private boolean bookAlreadyBorrowedByThisUser(final Long bookId, final Long userId) {
         Optional<BookBorrower> borrowDoneByUser = bookBorrowerRepository.findByBookIdAndBorrowerId(bookId, userId);
         return borrowDoneByUser.isPresent();
     }
 
-    private boolean isUserOwningTheBook(final Long bookId, final Long userId){
+    private boolean isUserOwningTheBook(final Long bookId, final Long userId) {
         Optional<BookOwner> bookOwnerOptional = bookOwnerRepository.findByBookIdAndUserId(bookId, userId);
         return bookOwnerOptional.isPresent();
     }

@@ -1,24 +1,29 @@
 package com.endava.tmd.bookclubproject.user;
 
+import com.endava.tmd.bookclubproject.book.Book;
 import com.endava.tmd.bookclubproject.bookborrower.BookBorrower;
 import com.endava.tmd.bookclubproject.bookowner.BookOwner;
 import com.endava.tmd.bookclubproject.registration.token.ConfirmationToken;
 import com.endava.tmd.bookclubproject.security.UserRoles;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import javax.persistence.*;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.io.Serial;
+import java.io.Serializable;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @SuppressWarnings("JpaDataSourceORMInspection")
 @Data
 @NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "users")
 public class User implements UserDetails {
@@ -54,22 +59,22 @@ public class User implements UserDetails {
     @Enumerated(EnumType.STRING)
     private UserRoles role;
 
-    private boolean enabled = false;
+    private boolean enabled = true;
 
 
     @JsonIgnore
     @OneToMany(
             mappedBy = "user",
-            cascade = {CascadeType.PERSIST, CascadeType.MERGE}
+            cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE}
     )
-    private List<BookOwner> booksOwned = new ArrayList<>();
+    private transient Set<BookOwner> booksOwned = new HashSet<>();
 
     @JsonIgnore
     @OneToMany(
             mappedBy = "borrower",
-            cascade = {CascadeType.PERSIST, CascadeType.MERGE}
+            cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE}
     )
-    private List<BookBorrower> booksBorrowed = new ArrayList<>();
+    private transient Set<BookBorrower> booksBorrowed = new HashSet<>();
 
     public User(final String firstName,final String lastName,final String username,final String password,final String email,UserRoles role) {
         this.firstName = firstName;

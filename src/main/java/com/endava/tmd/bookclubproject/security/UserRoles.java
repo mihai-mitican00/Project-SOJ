@@ -13,12 +13,12 @@ import static com.endava.tmd.bookclubproject.security.UserPermissions.*;
 @AllArgsConstructor
 @Getter
 public enum UserRoles {
-    ADMIN(Sets.newHashSet(USER_READ, USER_WRITE, USER_DELETE, BOOK_READ, BOOK_WRITE)),
-    USER(Sets.newHashSet(USER_READ, BOOK_READ, BOOK_RENT, BOOK_DELETE));
+    ADMIN(Sets.newHashSet(USER_READ, USER_WRITE, USER_DELETE, BOOK_READ, BOOK_WRITE, BOOK_DELETE)),
+    USER(Sets.newHashSet(USER_READ, USER_WRITE, BOOK_WRITE, BOOK_READ, BOOK_RENT, BOOK_DELETE));
 
     private final Set<UserPermissions> userPermissions;
 
-    public Set<SimpleGrantedAuthority> getGrantedAuthorities(){
+    public Set<SimpleGrantedAuthority> getGrantedAuthorities() {
         Set<SimpleGrantedAuthority> grantedAuthorities
                 = userPermissions.stream()
                 .map(userPermission -> new SimpleGrantedAuthority(userPermission.getPermission()))

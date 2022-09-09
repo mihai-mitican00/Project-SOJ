@@ -6,7 +6,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -14,8 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-import static org.springframework.http.ResponseEntity.noContent;
-import static org.springframework.http.ResponseEntity.ok;
+import static org.springframework.http.ResponseEntity.*;
 
 @Tag(name = "Waiting List")
 @RestController
@@ -25,7 +26,6 @@ public class WaitingListController {
     @Autowired
     private WaitingListService waitingListService;
 
-    @RequestMapping(method = RequestMethod.GET)
     @Operation(
             summary = "Get all on waiting list.",
             description = "Get all entries on the waiting list.",
@@ -42,6 +42,8 @@ public class WaitingListController {
                     )
             }
     )
+    @PreAuthorize("hasAuthority('book:read')")
+    @RequestMapping(method = RequestMethod.GET)
     public ResponseEntity<List<WaitingList>> getAllOnWaitingList() {
         List<WaitingList> listOfEntries = waitingListService.getAllOnWaitingList();
         if (listOfEntries.isEmpty()) {
@@ -50,14 +52,13 @@ public class WaitingListController {
         return ok(listOfEntries);
     }
 
-    @RequestMapping(method = RequestMethod.POST)
     @Operation(
             summary = "Post user on waiting list.",
             description = "Post user with given id on waiting list for book with given id.",
             responses = {
                     @ApiResponse(
                             description = "Entry created with success",
-                            responseCode = "200",
+                            responseCode = "201",
                             content = @Content
                     ),
                     @ApiResponse(
@@ -67,16 +68,20 @@ public class WaitingListController {
                     )
             }
     )
+    @PreAuthorize("hasAuthority('book:rent')")
+    @RequestMapping(method = RequestMethod.POST)
     public ResponseEntity<String> addUserOnList(@RequestParam("bookId") final Long bookId,
                                                 @RequestParam("ownerId") final Long ownerId,
                                                 @RequestParam("userId") final Long userId) {
 
-        waitingListService.addUserOnList(bookId,ownerId, userId);
-        return ok(
-                "User with id " + userId
-                + " has added himself on waiting list for book with id " + bookId
-                +" owned by user with id " + ownerId
-        );
+        waitingListService.addUserOnList(bookId, ownerId, userId);
+        String message =
+                String.format(
+                        "User with id %d has added himself on waiting list for book with id %d owned by user with id %d",
+                        userId,
+                        bookId,
+                        ownerId);
+        return new ResponseEntity<>(message, HttpStatus.CREATED);
     }
 
 

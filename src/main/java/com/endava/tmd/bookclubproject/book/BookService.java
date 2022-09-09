@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class BookService {
@@ -27,8 +26,12 @@ public class BookService {
         return bookRepository.findAll();
     }
 
-    public List<Book> allBooksByTitleOrAuthor(final Optional<String> title, final Optional<String> author) {
-        return bookRepository.findBooksByTitleOrAuthor(title, author);
+    public Optional<Book> getBookById(final Long id) {
+        return bookRepository.findById(id);
+    }
+
+    public List<Book> getBooksByTitleOrAuthor(final String title, final String author) {
+        return bookRepository.findAllByTitleOrAuthor(title, author);
     }
 
     public List<Book> getAllAvailableBooks() {
@@ -79,7 +82,7 @@ public class BookService {
         return formattedResult.toString();
     }
 
-    private String formatBook(final Book book) {
+    public String formatBook(final Book book) {
         List<Long> allBookOwnersIds = bookOwnerRepository.findOwnersIdsOfBook(book.getId());
         //owner ids of the available book that did not rent the book yet.
         List<Long> availableOwnerIds = allBookOwnersIds
@@ -87,12 +90,7 @@ public class BookService {
                 .filter(ownerId -> bookBorrowerRepository.findByBookIdAndOwnerId(book.getId(), ownerId).isEmpty())
                 .toList();
 
-        StringBuilder bookString = new StringBuilder();
-        bookString
-                .append(book)
-                .append("\nAvailable from users with id: ").append(availableOwnerIds);
-
-        return bookString.toString();
+        return String.format("%s%nAvailable from users with ids: %s", book, availableOwnerIds);
     }
 
 }

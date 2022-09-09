@@ -1,19 +1,24 @@
 package com.endava.tmd.bookclubproject.bookowner;
 
 import com.endava.tmd.bookclubproject.book.Book;
+import com.endava.tmd.bookclubproject.security.UserRoles;
+import com.endava.tmd.bookclubproject.user.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
 
+import static com.endava.tmd.bookclubproject.security.UserRoles.ADMIN;
 import static org.springframework.http.ResponseEntity.noContent;
 import static org.springframework.http.ResponseEntity.ok;
 
@@ -25,8 +30,7 @@ public class BookOwnerController {
     @Autowired
     private BookOwnerService bookOwnerService;
 
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @RequestMapping(method = RequestMethod.GET)
+
     @Operation(
             summary = "Get all Book Owner entries.",
             description = "Get all books and their owners, a book with more copies has more owners.",
@@ -43,6 +47,8 @@ public class BookOwnerController {
                     )
             }
     )
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @RequestMapping(method = RequestMethod.GET)
     public ResponseEntity<List<BookOwner>> getAllBookOwners() {
         List<BookOwner> bookOwners = bookOwnerService.getAllBookOwners();
         if (bookOwners.isEmpty()) {
@@ -51,15 +57,14 @@ public class BookOwnerController {
         return ok(bookOwners);
     }
 
-    @PreAuthorize("hasAuthority('book:write')")
-    @RequestMapping(method = RequestMethod.POST)
+
     @Operation(
             summary = "Add book as user.",
             description = "Add a book owner entry as a user, the book will appear in Book API too if another user did not already added it.",
             responses = {
                     @ApiResponse(
                             description = "Add a book with success.",
-                            responseCode = "200",
+                            responseCode = "201",
                             content = @Content
                     ),
                     @ApiResponse(
@@ -69,12 +74,20 @@ public class BookOwnerController {
                     )
             }
     )
-    public ResponseEntity<String> addBookByUserId(@RequestParam("userId") final Long userId, @RequestBody final Optional<Book> bookOptional) {
-        bookOwnerService.addBookByUserId(userId, bookOptional);
-        return ok("Book \"" + bookOptional.orElse(new Book()).getTitle() + "\" was added by user with id " + userId);
+    @PreAuthorize("hasAuthority('book:write')")
+    @RequestMapping(method = RequestMethod.POST)
+    public ResponseEntity<String> addBookAsUser(@AuthenticationPrincipal final User authenticatedUser,
+                                                @RequestBody(required = false) final Book book) {
+
+        bookOwnerService.addBookAsUser(authenticatedUser, book);
+        String message =
+                String.format("Thank you %s for adding \"%s\" by %s",
+                        authenticatedUser.getUsername(),
+                        book.getTitle(),
+                        book.getAuthor());
+        return new ResponseEntity<>(message, HttpStatus.CREATED);
     }
 
-    @RequestMapping(method = RequestMethod.DELETE)
     @Operation(
             summary = "Remove book from owner.",
             description = "Owner removes a book, and all traces of that book " +
@@ -93,10 +106,15 @@ public class BookOwnerController {
                     )
             }
     )
-    public ResponseEntity<String> removeBookOwnerEntry(@RequestParam("bookId") final Long bookId,
-                                                       @RequestParam("userId") final Long userId) {
-        bookOwnerService.deleteBookFromUser(bookId, userId);
-        return ok("Owner with user id " + userId + " deleted book with id " + bookId + " with success!");
+    @PreAuthorize("hasAuthority('book:delete')")
+    @RequestMapping(method = RequestMethod.DELETE)
+    public ResponseEntity<String> removeBookAsUser(@AuthenticationPrincipal final User authenticatedUser,
+                                                   @RequestParam("bookId") final Long bookId) {
+        Long userId = authenticatedUser.getId();
+        bookOwnerService.deleteBookAsUser(bookId, userId);
+
+        String message = String.format("You deleted book with id %d", bookId);
+        return ok(message);
     }
 
 }

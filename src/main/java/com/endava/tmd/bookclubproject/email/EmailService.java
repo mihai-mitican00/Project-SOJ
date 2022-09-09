@@ -35,4 +35,5 @@ public class EmailService implements EmailSender{
             throw new ApiBadRequestException("Email could not be sent");
         }
     }
+
 }

@@ -5,25 +5,23 @@ import com.endava.tmd.bookclubproject.book.BookRepository;
 import com.endava.tmd.bookclubproject.bookborrower.BookBorrowerRepository;
 import com.endava.tmd.bookclubproject.bookowner.BookOwnerRepository;
 import com.endava.tmd.bookclubproject.exception.ApiBadRequestException;
+import com.endava.tmd.bookclubproject.exception.ApiNotFoundException;
 import com.endava.tmd.bookclubproject.registration.token.ConfirmationToken;
-import com.endava.tmd.bookclubproject.registration.token.ConfirmationTokenRepository;
 import com.endava.tmd.bookclubproject.registration.token.ConfirmationTokenService;
 import com.endava.tmd.bookclubproject.waitinglist.WaitingListRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.security.SecureRandom;
-import java.time.LocalDateTime;
+import javax.transaction.Transactional;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
-import static com.endava.tmd.bookclubproject.utilities.BooleanUtilities.*;
+import static com.endava.tmd.bookclubproject.utilities.BooleanUtilities.anyEmptyStringElements;
+import static com.endava.tmd.bookclubproject.utilities.BooleanUtilities.anyNullElements;
 
 @Service
 public class UserService implements UserDetailsService {
@@ -49,6 +47,7 @@ public class UserService implements UserDetailsService {
     @Autowired
     private ConfirmationTokenService confirmationTokenService;
 
+
     @Override
     public UserDetails loadUserByUsername(final String email) throws UsernameNotFoundException {
         return userRepository.findUserByEmail(email)
@@ -59,75 +58,66 @@ public class UserService implements UserDetailsService {
         return userRepository.findAll();
     }
 
+    public Optional<User> getUserById(final Long id) {
+        return userRepository.findById(id);
+    }
+
     public List<Book> getBooksOfUser(final Long userId) {
         return bookOwnerRepository.findBooksOfUser(userId);
     }
 
-
     public String registerUser(Optional<User> userOptional) {
         //check if user data is complete and if user with same email or username not already registered
-        checkValidDataForRegister(userOptional);
+        if (userOptional.isEmpty() || hasIncompleteData(userOptional.get())) {
+            throw new ApiBadRequestException("Details for user are not complete!");
+        }
 
-        User user = userOptional.orElse(new User());
-        encryptUserPassword(user);
-        userRepository.save(user);
+        User user = userOptional.get();
+        String email = user.getEmail();
+        Optional<User> userByEmail = userRepository.findUserByEmail(email);
 
-        //Now send confirmation token
-        String token = UUID.randomUUID().toString();
-        ConfirmationToken confirmationToken = new ConfirmationToken(
-                token,
-                LocalDateTime.now(),
-                LocalDateTime.now().plusMinutes(15),
-                user
-        );
+        ConfirmationToken confirmationToken;
+        //User account exists and has already confirmed activation link
+        if (userByEmail.isPresent() && userByEmail.get().isEnabled()) {
+            String errorMessage = String.format("User with email %s is already registered!", email);
+            throw new ApiBadRequestException(errorMessage);
+        }
+        //Account exists but confirmation link not activated
+        else if (userByEmail.isPresent() && !userByEmail.get().isEnabled()) {
+            confirmationToken = confirmationTokenService.generateConfirmationToken(userByEmail.get());
+        }
+        //Account does not exist.
+        else {
+            encryptUserPassword(user);
+            userRepository.save(user);
+            confirmationToken = confirmationTokenService.generateConfirmationToken(user);
+        }
+
+        //save token in database
         confirmationTokenService.saveConfirmationToken(confirmationToken);
-        return token;
+
+        //Now send further away confirmation token
+        return confirmationToken.getToken();
     }
 
-    public void enableUserAccount(final String email){
+    public void enableUserAccount(final String email) {
         User user = userRepository
                 .findUserByEmail(email)
-                .orElseThrow(() -> new ApiBadRequestException("User not found!"));
+                .orElseThrow(() -> new ApiNotFoundException("User not found!"));
 
         user.setEnabled(true);
     }
 
-    public void deleteUser(final Long userId) {
-        Optional<User> optionalUser = userRepository.findById(userId);
-        if (optionalUser.isEmpty()) {
-            throw new ApiBadRequestException("User with given id does not exist.");
+
+    public String deleteUser(final Long userId) {
+        Optional<User> userOptional = userRepository.findById(userId);
+        if (userOptional.isEmpty()) {
+            throw new ApiNotFoundException(String.format("There is no user with id %d.", userId));
         }
 
         deleteUserTrace(userId);
-        userRepository.delete(optionalUser.get());
-    }
-
-
-    private void checkValidDataForRegister(Optional<User> userOptional) {
-        if (userOptional.isEmpty() || hasIncompleteData(userOptional)) {
-            throw new ApiBadRequestException("Details for user are not complete!");
-        }
-        User user = userOptional.get();
-
-        Optional<User> userByUsernameOrEmail = userRepository.findUserByUsernameOrEmail(
-                Optional.of(user.getUsername()),
-                Optional.of(user.getEmail())
-        );
-
-        if (userByUsernameOrEmail.isPresent()) {
-            throw new ApiBadRequestException("User with username or email already exists!");
-        }
-    }
-
-    private void encryptUserPassword(final User user) {
-        String encodedPassword = passwordEncoder.encode(user.getPassword());
-        user.setPassword(encodedPassword);
-    }
-
-    private boolean hasIncompleteData(Optional<User> userOptional) {
-        User user = userOptional.orElse(new User());
-        String[] userData = {user.getEmail(), user.getFirstName(), user.getLastName(), user.getPassword(), user.getUsername()};
-        return anyNullElements(userData) || anyEmptyStringElements(userData);
+        userRepository.deleteById(userId);
+        return String.format("User with email %s and all his traces deleted from system!", userOptional.get().getEmail());
     }
 
     private void deleteUserTrace(final Long userId) {
@@ -141,12 +131,25 @@ public class UserService implements UserDetailsService {
         bookBorrowerRepository.deleteAllByBorrowerId(userId);
         bookBorrowerRepository.deleteAllByOwnerId(userId);
 
-        //delete all books owned by an user and the book if he has the only copy
+        //delete all books owned by a user and the book if he has the only copy
         bookOwnerRepository.deleteAllByUserId(userId);
 
         List<Book> booksOwned = bookOwnerRepository.findAllOwnedBooks();
         List<Book> books = bookRepository.findAll();
         books.stream().filter(book -> !booksOwned.contains(book)).forEach(book -> bookRepository.delete(book));
+
+        //deleting all his previous tokens
+        confirmationTokenService.deleteAllTokensOfAnUser(userId);
+    }
+
+    private void encryptUserPassword(final User user) {
+        String encodedPassword = passwordEncoder.encode(user.getPassword());
+        user.setPassword(encodedPassword);
+    }
+
+    private boolean hasIncompleteData(final User user) {
+        String[] userData = {user.getEmail(), user.getFirstName(), user.getLastName(), user.getPassword(), user.getUsername()};
+        return anyNullElements(userData) || anyEmptyStringElements(userData);
     }
 
 

@@ -5,6 +5,7 @@ import com.endava.tmd.bookclubproject.book.BookRepository;
 import com.endava.tmd.bookclubproject.bookowner.BookOwner;
 import com.endava.tmd.bookclubproject.bookowner.BookOwnerRepository;
 import com.endava.tmd.bookclubproject.exception.ApiBadRequestException;
+import com.endava.tmd.bookclubproject.exception.ApiNotFoundException;
 import com.endava.tmd.bookclubproject.user.User;
 import com.endava.tmd.bookclubproject.user.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static java.time.temporal.ChronoUnit.WEEKS;
 
@@ -35,29 +37,48 @@ public class BookBorrowerService {
         return bookBorrowerRepository.findAll();
     }
 
-    public List<BookBorrower> getBooksThatUserGave(final Long ownerId) {
+    public List<BookBorrower> getBorrowsWhereUserGave(final Long ownerId) {
         return bookBorrowerRepository.findAllByOwnerId(ownerId);
     }
 
-    public List<BookBorrower> getBooksThatUserRented(final Long borrowerId) {
+    public List<BookBorrower> getBorrowsWhereUserReceived(final Long borrowerId) {
         return bookBorrowerRepository.findAllByBorrowerId(borrowerId);
     }
 
-    public void borrowBookFromOwner(final Long bookId, final Long borrowerId, final Long ownerId, final Long weeks) {
-        checkIfRentable(bookId, borrowerId, ownerId, weeks);
-        Book book = bookRepository.findById(bookId).orElse(new Book());
-        User borrower = userRepository.findById(borrowerId).orElse(new User());
+    public String borrowBookFromOwner(final Long bookId, final Long borrowerId, final Long ownerId, final Long weeks) {
+        Optional<Book> bookOptional = bookRepository.findById(bookId);
+        Optional<User> borrowerOptional = userRepository.findById(borrowerId);
+        Optional<User> ownerOptional = userRepository.findById(ownerId);
+
+        if (bookOptional.isEmpty() ||
+                borrowerOptional.isEmpty() ||
+                ownerOptional.isEmpty() ||
+                !validRentingPeriod(weeks)) {
+            throw new ApiNotFoundException("Invalid params, can not proceed with the borrow!");
+        }
+
+        Book book = bookOptional.get();
+        User borrower = borrowerOptional.get();
+
+        checkIfRentable(bookId, borrowerId, ownerId);
         BookBorrower bookBorrower = new BookBorrower(book, borrower, ownerId, weeks);
         bookBorrowerRepository.save(bookBorrower);
+        return String.format("Hello %s!%nYou just borrowed \"%s\".%nHappy reading!",
+                borrower.getUsername(),
+                book.getTitle());
     }
 
-    public void extendRentingPeriod(final Long bookId, final Long borrowerId) {
-        Optional<BookBorrower> bookBorrowerOptional = bookBorrowerRepository.findByBookIdAndBorrowerId(bookId, borrowerId);
-        checkIfExtendable(bookBorrowerOptional);
-        BookBorrower bookBorrower = bookBorrowerOptional.orElse(new BookBorrower());
+    public String extendRentingPeriod(final Long bookId, final Long borrowerId) {
+        BookBorrower bookBorrower = bookBorrowerRepository.findByBookIdAndBorrowerId(bookId, borrowerId)
+                .orElseThrow(() -> new ApiNotFoundException("The borrow with given id's does not exist."));
+
+        checkIfExtendableReturnDate(bookBorrower);
+
         LocalDate returnDate = bookBorrower.getReturnDate();
         bookBorrower.setReturnDate(returnDate.plusWeeks(1));
         bookBorrowerRepository.save(bookBorrower);
+        return String.format("You just extended renting period for book \"%s\" for another week",
+                bookBorrower.getBook().getTitle());
     }
 
     public String formatBooksThatUserGave(List<BookBorrower> ownersList) {
@@ -68,7 +89,7 @@ public class BookBorrowerService {
         return message.toString();
     }
 
-    public String formatBooksThatUserRented(List<BookBorrower> borrowersList) {
+    public String formatBooksThatUserReceived(List<BookBorrower> borrowersList) {
         StringBuilder message = new StringBuilder();
         borrowersList.forEach(bookBorrower ->
                 message.append(bookBorrower.toStringOwnerFocused())
@@ -76,27 +97,19 @@ public class BookBorrowerService {
         return message.toString();
     }
 
-    private void checkIfRentable(final Long bookId, final Long borrowerId, final Long ownerId, final Long weeks) {
-        if (!isDataValid(bookId, borrowerId, ownerId, weeks)) {
-            throw new ApiBadRequestException("Data introduced for borrow is not valid, the borrow cannot be done.");
+    private void checkIfRentable(final Long bookId, final Long borrowerId, final Long ownerId) {
+        if (isBookOwnedBy(bookId, borrowerId)) {
+            throw new ApiBadRequestException("The user cannot rent a book that himself owns.");
         } else if (!isBookOwnedBy(bookId, ownerId)) {
             throw new ApiBadRequestException("The book does not belong to given owner.");
         } else if (isBookOfOwnerAlreadyBorrowed(bookId, ownerId)) {
             throw new ApiBadRequestException("The given book is already borrowed at the moment.");
-        } else if (hasBorrowerAlreadyRentTheBook(bookId, borrowerId)) {
-            throw new ApiBadRequestException("Given borrower has already rented this book.");
-        } else if (isBookOwnedBy(bookId, borrowerId)) {
-            throw new ApiBadRequestException("The user cannot rent a book that himself owns.");
         }
     }
 
-    private void checkIfExtendable(final Optional<BookBorrower> bookBorrowerOptional){
-        if (bookBorrowerOptional.isEmpty()) {
-            throw new ApiBadRequestException("The borrow with given id's does not exist.");
-        }
-        BookBorrower bookBorrower = bookBorrowerOptional.get();
-        LocalDate borrowDate = bookBorrower.getBorrowDate();
-        LocalDate returnDate = bookBorrower.getReturnDate();
+    private void checkIfExtendableReturnDate(final BookBorrower entry) {
+        LocalDate borrowDate = entry.getBorrowDate();
+        LocalDate returnDate = entry.getReturnDate();
         LocalDate extendedReturnDate = returnDate.plusWeeks(1L);
         long weekDifference = WEEKS.between(borrowDate, extendedReturnDate);
         if (weekDifference > 5) {
@@ -104,11 +117,8 @@ public class BookBorrowerService {
         }
     }
 
-    private boolean isDataValid(final Long bookId, final Long borrowerId, final Long ownerId, final Long weeks) {
-        Optional<Book> bookOptional = bookRepository.findById(bookId);
-        Optional<User> borrowerOptional = userRepository.findById(borrowerId);
-        Optional<User> ownerOptional = userRepository.findById(ownerId);
-        return (bookOptional.isPresent() && borrowerOptional.isPresent() && ownerOptional.isPresent() && (weeks >= 1 && weeks <= 4));
+    private boolean validRentingPeriod(final Long weeks) {
+        return weeks >= 1 && weeks <= 4;
     }
 
     private boolean isBookOwnedBy(final Long bookId, final Long ownerId) {
@@ -121,10 +131,10 @@ public class BookBorrowerService {
         return bookByOwner.isPresent();
     }
 
-    private boolean hasBorrowerAlreadyRentTheBook(final Long bookId, final Long borrowerId) {
-        Optional<BookBorrower> borrowerOptional = bookBorrowerRepository.findByBookIdAndBorrowerId(bookId, borrowerId);
-        return borrowerOptional.isPresent();
-    }
+//    private boolean hasBorrowerAlreadyRentTheBook(final Long bookId, final Long borrowerId) {
+//        Optional<BookBorrower> borrowerOptional = bookBorrowerRepository.findByBookIdAndBorrowerId(bookId, borrowerId);
+//        return borrowerOptional.isPresent();
+//    }
 
 
 }

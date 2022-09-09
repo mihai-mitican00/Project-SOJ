@@ -17,7 +17,6 @@ public interface BookRepository extends JpaRepository<Book, Long> {
     List<Book> findAvailableBooks();
 
 
-    @Query(value = "SELECT bo.book FROM  BookOwner bo WHERE bo.book.title = ?1 OR bo.book.author = ?2")
-    List<Book> findBooksByTitleOrAuthor(final Optional<String> title, final Optional<String> author);
+    List<Book> findAllByTitleOrAuthor(final String title, final String author);
 
 }

@@ -29,7 +29,6 @@ public interface BookOwnerRepository extends JpaRepository <BookOwner, BookOwner
 
     Optional<BookOwner> findByBookIdAndUserId(final Long bookId, final Long userId);
 
-
     @Transactional
     void deleteAllByUserId(final Long userId);
 }

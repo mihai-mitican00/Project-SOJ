@@ -3,6 +3,7 @@ package com.endava.tmd.bookclubproject.registration;
 import com.endava.tmd.bookclubproject.email.EmailSender;
 import com.endava.tmd.bookclubproject.email.EmailService;
 import com.endava.tmd.bookclubproject.exception.ApiBadRequestException;
+import com.endava.tmd.bookclubproject.exception.ApiNotFoundException;
 import com.endava.tmd.bookclubproject.registration.token.ConfirmationToken;
 import com.endava.tmd.bookclubproject.registration.token.ConfirmationTokenService;
 import com.endava.tmd.bookclubproject.user.User;
@@ -28,11 +29,10 @@ public class RegistrationService {
     @Autowired
     private EmailSender emailSender;
 
-    public String register(RegistrationRequest request) {
-//        if (!isEmailValid(request.getEmail())) {
-//            throw new ApiBadRequestException(String.format("email %s is not a valid email", request.getEmail()));
-//        }
-
+    public String register(final RegistrationRequest request)  {
+        if (!isEmailValid(request.getEmail())) {
+            throw new ApiBadRequestException(String.format("email %s is not a valid email", request.getEmail()));
+        }
         String token = userService.registerUser(
                 Optional.of(new User(
                                 request.getFirstName(),
@@ -54,7 +54,7 @@ public class RegistrationService {
         ConfirmationToken confirmationToken =
                 confirmationTokenService
                         .getToken(token)
-                        .orElseThrow(() -> new ApiBadRequestException("Token not found!"));
+                        .orElseThrow(() -> new ApiNotFoundException("Token not found!"));
 
         if (confirmationToken.getConfirmedAt() != null) {
             throw new ApiBadRequestException("Token was already confirmed!");
@@ -67,7 +67,7 @@ public class RegistrationService {
 
         confirmationTokenService.setConfirmedAt(token);
         userService.enableUserAccount(confirmationToken.getUser().getEmail());
-        return "confirmed!";
+        return String.format("Account with email %s was confirmed!", confirmationToken.getUser().getEmail());
     }
 
     private boolean isEmailValid(final String email) {
@@ -75,7 +75,8 @@ public class RegistrationService {
         return email.matches(validEmailRegex);
     }
 
-    private String buildEmail(String name, String link) {
+
+    public String buildEmail(String name, String link) {
         return "<div style=\"font-family:Helvetica,Arial,sans-serif;font-size:16px;margin:0;color:#0b0c0c\">\n" +
                 "\n" +
                 "<span style=\"display:none;font-size:1px;color:#fff;max-height:0\"></span>\n" +
